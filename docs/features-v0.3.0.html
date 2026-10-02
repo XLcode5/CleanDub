@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClearApp 功能清单 - v0.3.0</title>
+<style>
+:root{--bg:#0f172a;--bg-card:#1e293b;--bg-hover:#334155;--border:#334155;--text:#f1f5f9;--text-secondary:#94a3b8;--accent:#3b82f6;--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--purple:#8b5cf6}
+[data-theme="light"]{--bg:#f1f5f9;--bg-card:#fff;--bg-hover:#e2e8f0;--border:#cbd5e1;--text:#1e293b;--text-secondary:#64748b;--accent:#2563eb}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;background:var(--bg);color:var(--text);padding:24px}
+.container{max-width:1200px;margin:0 auto}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:16px}
+h1{font-size:28px;display:flex;align-items:center;gap:12px}
+.version-tag{background:var(--accent);color:#fff;padding:4px 12px;border-radius:20px;font-size:14px;font-weight:600}
+.meta{color:var(--text-secondary);font-size:14px}
+.stats{display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+.stat{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px 24px;text-align:center;min-width:120px}
+.stat .num{font-size:32px;font-weight:700;margin-bottom:4px}
+.stat .label{font-size:13px;color:var(--text-secondary)}
+.stat.done .num{color:var(--success)}
+.stat.doing .num{color:var(--warning)}
+.stat.plan .num{color:var(--purple)}
+.filters{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.filter-btn{background:var(--bg-card);border:1px solid var(--border);color:var(--text);padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;transition:all .2s}
+.filter-btn:hover{background:var(--bg-hover)}
+.filter-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.category{margin-bottom:24px}
+.category-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;cursor:pointer;user-select:none}
+.category-header h2{font-size:18px;font-weight:600}
+.category-header .count{background:var(--bg-hover);color:var(--text-secondary);padding:2px 10px;border-radius:12px;font-size:12px}
+.category-header .arrow{transition:transform .2s}
+.category.collapsed .arrow{transform:rotate(-90deg)}
+.category.collapsed .feature-list{display:none}
+.feature-list{display:grid;gap:8px}
+.feature{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;display:grid;grid-template-columns:auto 1fr auto auto;gap:12px;align-items:center;transition:all .2s}
+.feature:hover{border-color:var(--accent)}
+.feature .status{width:80px;text-align:center;padding:4px 8px;border-radius:6px;font-size:12px;font-weight:600}
+.feature .status.done{background:rgba(16,185,129,.2);color:var(--success)}
+.feature .status.doing{background:rgba(245,158,11,.2);color:var(--warning)}
+.feature .status.plan{background:rgba(139,92,246,.2);color:var(--purple)}
+.feature .name{font-weight:600;font-size:15px}
+.feature .desc{color:var(--text-secondary);font-size:13px;margin-top:4px}
+.feature .version{font-size:12px;color:var(--text-secondary);background:var(--bg);padding:2px 8px;border-radius:4px}
+.feature .priority{font-size:12px;font-weight:600;padding:2px 8px;border-radius:4px}
+.feature .priority.p0{background:rgba(239,68,68,.2);color:var(--danger)}
+.feature .priority.p1{background:rgba(245,158,11,.2);color:var(--warning)}
+.feature .priority.p2{background:rgba(59,130,246,.2);color:var(--accent)}
+.feature .priority.p3{background:rgba(139,92,246,.2);color:var(--purple)}
+.feature .notes{grid-column:1/-1;font-size:12px;color:var(--text-secondary);padding-top:8px;border-top:1px solid var(--border);margin-top:4px}
+.theme-toggle{position:fixed;top:20px;right:20px;background:var(--bg-card);border:1px solid var(--border);color:var(--text);padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;z-index:100}
+@media (max-width:768px){
+  .feature{grid-template-columns:1fr;gap:8px}
+  .feature .status{width:auto}
+  .stats{justify-content:center}
+}
+@media print{
+  body{background:#fff;color:#000}
+  .feature,.stat,.category{break-inside:avoid}
+  .theme-toggle,.filters{display:none}
+}
+</style>
+</head>
+<body>
+<button class="theme-toggle" onclick="document.documentElement.setAttribute('data-theme', document.documentElement.getAttribute('data-theme')==='light'?'':'light')">切换主题</button>
+<div class="container">
+  <div class="header">
+    <h1>🧹 ClearApp 功能清单 <span class="version-tag">v0.3.0</span></h1>
+    <div class="meta">生成时间: 2026-10-02 10:16:22 | 共 32 项功能</div>
+  </div>
+  
+  <div class="stats">
+    <div class="stat done"><div class="num">24</div><div class="label">已完成</div></div>
+    <div class="stat doing"><div class="num">1</div><div class="label">进行中</div></div>
+    <div class="stat plan"><div class="num">7</div><div class="label">规划中</div></div>
+  </div>
+  
+  <div class="filters">
+    <button class="filter-btn active" data-filter="all">全部</button>
+    <button class="filter-btn" data-filter="done">已完成</button>
+    <button class="filter-btn" data-filter="doing">进行中</button>
+    <button class="filter-btn" data-filter="plan">规划中</button>
+  </div>
+  
+  <div id="categories">
+
+    <div class="category" data-category="安全与恢复">
+      <div class="category-header" onclick="this.parentElement.classList.toggle('collapsed')">
+        <span class="arrow">▼</span>
+        <h2>安全与恢复</h2>
+        <span class="count">5/5</span>
+      </div>
+      <div class="feature-list">
+
+        <div class="feature" data-status="已完成">
+          <span class="status done">✅ 已完成</span>
+          <div>
+            <div class="name">隔离区</div>
+            <div class="desc">移入隔离区而非直接删除，保留 manifest</div>
+          </div>
+          <span class="version">v0.1.0</span>
+          <span class="priority p0">P0</span>
+          <div class="notes">📝 默认动作</div>
+        </div>
+
+        <div class="feature" data-status="已完成">
+          <span class="status done">✅ 已完成</span>
+          <div>
+            <div class="name">一键还原</div>
+            <div class="desc">从隔离区恢复全部或选中文件</div>
+          </div>
+          <span class="version">v0.1.0</span>
+          <span class="priority p0">P0</span>
+          <div class="notes">📝 网页/CLI 都支持</div>
+        </div>
+
+        <div class="feature" data-status="已完成">
+          <span class="status done">✅ 已完成</span>
+          <div>
+            <div class="name">永久删除</div>
+            <div class="desc">需二次确认，直接删除文件</div>
+          </div>
+          <span class="version">v0.1.0</span>
+          <span class="priority p0">P0</span>
+          <div class="notes">📝 高危操作</div>
+        </div>
+
+        <div class="feature" data-status="已完成">
+          <span class="status done">✅ 已完成</span>
+          <div>
+            <div class="name">操作日志</div>
+            <div class="desc">ops.jsonl append-only，永不丢失</div>
+          </div>
+          <span class="version">v0.2.0</span>
+          <span class="priority p1">P1</span>
+          <div class="notes">📝 独立于隔离区</div>
+        </div>
+
+        <div class="feature" data-status="已完成">
+          <span class="status done">✅ 已完成</span>
+          <div>
+            <div class="name">扫描终止</div>
+            <div class="desc">后台任务可中断，开始新任务</div>
+          </div>
+          <span class="version">v0.3.0</span>
+          <span class="priority p1">P1</span>
+          <div class="notes">📝 新增 /api/stop-scan</div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="category" data-category="核心引擎">
+      <div class="category-header" onclick="this.parentElement.classList.toggle('collapsed')">
+        <span class="arrow">▼</span>
+        <h2>核心引擎</h2>
+        <span class="count">8/8</span>
+      </div>
+      <div class="feature-list">
+
+        <div class="feature" data-status="已完成">
+          <span class="status done">✅ 已完成</span>
+          <div>
+            <div class="name">内容级判重</div>
+            <div class="desc">SHA-256 全量哈希，跨目录/跨改名/多层 (N) 后缀命中</div>
+          </div>
+          <span class="version">v0.1.0</span>
+          <span class="priority p0">P0</span>
+          <div class="notes">📝 三级流水线：大小分组 → prehash → 全量</div>
+        </div>
+
+        <div class="feature" data-status="已完成">
+          <span class="status done">✅ 已完成</span>
+          <div>
+            <div class="name">预筛强度</div>
+            <div class="desc">16/32/64/128 KB 四档预筛片段，平衡速度与精度</div>
+          </div>
+          <span class="version">v0.2.0</span>
+          <span class="priority p0">P0</span>
+          <div class="notes">📝 原「头部大小」，已更名</div>
+        </div>
+
+        <div class="feature" data-status="已完成">
+          <span class="status done">✅ 已完成</span>
+          <div>
+            <div class="name">扫描方式</div>
+            <div class="desc">全量哈希 / 只比头部 / 只比文件名 / 只比文件大小</div>
+          </div>
+          <span class="version">v0.3.0</span>
+          <span class="priority p0">P0</span>
+          <div class="notes">📝 新增 Name 和 Size 模式</div>
+        </div>
+
+        <div class="feature" data-status="已完成">
+          <span class="status done">✅ 已完成</span>
+          <div>
+            <div class="name">保留策略</div>
+            <div class="desc">Cleanest / Newest / Original / Highest 四种策略</div>
+          </div>
+          <span class="version">v0.1.0</span>
+          <span class="priority p0">P0</span>
+          <div class="notes">📝 默认 Cleanest</div>
+        </div>
+
+        <div class="feature" data-status="已完成">
+          <span class="status done">✅ 已完成</span>
+          <div>
+            <div class="name">硬链接检测</div>
+            <div class="desc">识别硬链接，区分表面/真实可释放空间</div>
+          </div>
+          <span class="version">v0.1.0</span>
+          <span class="priority p1">P1</span>
+          <div class="notes">📝 需要 Windows API</div>
+        </div>
+
+        <div class="feature" data-status="已完成">
+          <span class="status done">✅ 已完成</span>
+          <div>
+            <div class="name">多目录扫描</div>
+            <div class="desc">支持分号分隔多个路径，合并结果</div>
+          </div>
+          <span class="version">v0.2.0</span>
+          <span class="priority p1">P1</span>
+          <div class="notes">📝 CLI 参数 -Paths</div>
+        </div>
+
+        <div class="feature" data-status="已完成">
+          <span class="status done">✅ 已完成</span>
+          <div>
+            <div class="name">文件类型过滤</div>
+            <div class="desc">IncludeExt / ExcludeExt 参数控制</div>
+          </div>
+          <span class="version">v0.2.0</span>
+          <span class="priority p1">P1</span>
+          <div class="notes">📝 UI 已暴露</div>
+        </div>
+
+        <div class="feature" data-status="已完成">
+          <span class="status done">✅ 已完成</span>
+          <div>
+            <div class="name">最小文件大小</div>
+            <div class="desc">MinSize 参数，UI 下拉选择</div>
+          </div>
+          <span class="version">v0.2.0</span>
+          <span class="priority p2">P2</span>
+          <div class="notes">📝 1KB-1MB 五档</div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="category" data-category="用户界面">
+      <div class="category-header" onclick="this.parentElement.classList.toggle('collapsed')">
+        <span class="arrow">▼</span>
+        <h2>用户界面</h2>
+        <span class="count">8/8</span>
+      </div>
+      <div class="feature-list">
+
+        <div class="feature" data-status="已完成">
+          <span class="status done">✅ 已完成</span>
+          <div>
+            <div class="name">网页界面</div>
+            <div class="desc">本地 TcpListener 服务，免管理员</div>
+          </div>
+          <span class="version">v0.1.0</span>
+          <span class="priority p0">P0</span>
+          <div class="notes">📝 127.0.0.1 only</div>
+        </div>
+
+        <div class="feature" data-status="已完成">
+          <span class="status done">✅ 已完成</span>
+          <div>
+            <div class="name">深色/浅色主题</div>
+            <div class="desc">localStorage 记忆用户偏好</div>
+          </div>
+          <span class="version">v0.3.0</span>
+          <span class="priority p2">P2</span>
+          <div class="notes">📝 新增</div>
+        </div>
+
+        <div class="feature" data-status="已完成">
+          <span class="status done">✅ 已完成</span>
+          <div>
+            <div class="name">响应式布局</div>
+            <div class="desc">适配小窗口和移动端</div>
+          </div>
+          <span class="version">v0.3.0</span>
+          <span class="priority p2">P2</span>
+          <div class="notes">📝 新增</div>
+        </div>
+
+        <div class="feature" data-status="已完成">
+          <span class="status done">✅ 已完成</span>
+          <div>
+            <div class="name">目录浏览</div>
+            <div class="desc">模态框浏览本机目录，支持下钻</div>
+          </div>
+          <span class="version">v0.3.0</span>
+          <span class="priority p1">P1</span>
+          <div class="notes">📝 新增 /api/browse</div>
+        </div>
+
+        <div class="feature" data-status="已完成">
+          <span class="status done">✅ 已完成</span>
+          <div>
+            <div class="name">文件类型筛选</div>
+            <div class="desc">图片/视频/音频/文档/压缩包快捷筛选</div>
+          </div>
+          <span class="version">v0.3.0</span>
+          <span class="priority p1">P1</span>
+          <div class="notes">📝 新增</div>
+        </div>
+
+        <div class="feature" data-status="已完成">
+          <span class="status done">✅ 已完成</span>
+          <div>
+            <div class="name">进度显示</div>
+            <div class="desc">阶段进度 + 百分比 + 已用时间</div>
+          </div>
+          <span class="version">v0.2.0</span>
+          <span class="priority p1">P1</span>
+          <div class="notes">📝 后台轮询</div>
+        </div>
+
+        <div class="feature" data-status="已完成">
+          <span class="status done">✅ 已完成</span>
+          <div>
+            <div class="name">分页浏览</div>
+            <div class="desc">每页 50 组，服务端分页</div>
+          </div>
+          <span class="version">v0.1.0</span>
+          <span class="priority p1">P1</span>
+          <div class="notes">📝 避免 DOM 爆炸</div>
+        </div>
+
+        <div class="feature" data-status="已完成">
+          <span class="status done">✅ 已完成</span>
+          <div>
+            <div class="name">统计卡片</div>
+            <div class="desc">重复组/待清理/可释放/耗时等</div>
+          </div>
+          <span class="version">v0.2.0</span>
+          <span class="priority p1">P1</span>
+          <div class="notes">📝 实时更新</div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="category" data-category="规划功能">
+      <div class="category-header" onclick="this.parentElement.classList.toggle('collapsed')">
+        <span class="arrow">▼</span>
+        <h2>规划功能</h2>
+        <span class="count">0/8</span>
+      </div>
+      <div class="feature-list">
+
+        <div class="feature" data-status="规划中">
+          <span class="status plan">📋 规划中</span>
+          <div>
+            <div class="name">JSON 导出</div>
+            <div class="desc">扫描结果导出为 JSON</div>
+          </div>
+          <span class="version">v0.4.0</span>
+          <span class="priority p2">P2</span>
+          <div class="notes">📝 API 已有数据</div>
+        </div>
+
+        <div class="feature" data-status="规划中">
+          <span class="status plan">📋 规划中</span>
+          <div>
+            <div class="name">文件预览</div>
+            <div class="desc">图片缩略图、文本前 N 行预览</div>
+          </div>
+          <span class="version">v0.4.0</span>
+          <span class="priority p2">P2</span>
+          <div class="notes">📝 需要文件类型检测</div>
+        </div>
+
+        <div class="feature" data-status="规划中">
+          <span class="status plan">📋 规划中</span>
+          <div>
+            <div class="name">表格排序</div>
+            <div class="desc">按大小/日期/组数排序</div>
+          </div>
+          <span class="version">v0.4.0</span>
+          <span class="priority p2">P2</span>
+          <div class="notes">📝 前端实现</div>
+        </div>
+
+        <div class="feature" data-status="规划中">
+          <span class="status plan">📋 规划中</span>
+          <div>
+            <div class="name">历史记录</div>
+            <div class="desc">扫描历史列表，快速对比</div>
+          </div>
+          <span class="version">v0.4.0</span>
+          <span class="priority p2">P2</span>
+          <div class="notes">📝 读取 _dedup_logs</div>
+        </div>
+
+        <div class="feature" data-status="进行中">
+          <span class="status doing">🚧 进行中</span>
+          <div>
+            <div class="name">exe 打包</div>
+            <div class="desc">ps2exe 单文件可执行程序</div>
+          </div>
+          <span class="version">v0.4.0</span>
+          <span class="priority p1">P1</span>
+          <div class="notes">📝 当前阶段</div>
+        </div>
+
+        <div class="feature" data-status="规划中">
+          <span class="status plan">📋 规划中</span>
+          <div>
+            <div class="name">自动更新</div>
+            <div class="desc">检查 GitHub Release 更新</div>
+          </div>
+          <span class="version">v0.5.0</span>
+          <span class="priority p3">P3</span>
+          <div class="notes">📝 需要版本 API</div>
+        </div>
+
+        <div class="feature" data-status="规划中">
+          <span class="status plan">📋 规划中</span>
+          <div>
+            <div class="name">多语言</div>
+            <div class="desc">中英文切换</div>
+          </div>
+          <span class="version">v0.5.0</span>
+          <span class="priority p3">P3</span>
+          <div class="notes">📝 i18n 框架</div>
+        </div>
+
+        <div class="feature" data-status="规划中">
+          <span class="status plan">📋 规划中</span>
+          <div>
+            <div class="name">云存储支持</div>
+            <div class="desc">OneDrive/百度网盘占位符识别</div>
+          </div>
+          <span class="version">v0.6.0</span>
+          <span class="priority p3">P3</span>
+          <div class="notes">📝 需要云 API</div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="category" data-category="输出与集成">
+      <div class="category-header" onclick="this.parentElement.classList.toggle('collapsed')">
+        <span class="arrow">▼</span>
+        <h2>输出与集成</h2>
+        <span class="count">3/3</span>
+      </div>
+      <div class="feature-list">
+
+        <div class="feature" data-status="已完成">
+          <span class="status done">✅ 已完成</span>
+          <div>
+            <div class="name">CSV 导出</div>
+            <div class="desc">清理计划导出，含完整路径</div>
+          </div>
+          <span class="version">v0.1.0</span>
+          <span class="priority p1">P1</span>
+          <div class="notes">📝 Excel 兼容</div>
+        </div>
+
+        <div class="feature" data-status="已完成">
+          <span class="status done">✅ 已完成</span>
+          <div>
+            <div class="name">命令行版</div>
+            <div class="desc">dedup.ps1 全功能 CLI</div>
+          </div>
+          <span class="version">v0.1.0</span>
+          <span class="priority p1">P1</span>
+          <div class="notes">📝 适合脚本化</div>
+        </div>
+
+        <div class="feature" data-status="已完成">
+          <span class="status done">✅ 已完成</span>
+          <div>
+            <div class="name">一键启动器</div>
+            <div class="desc">清理重复文件.bat 双击即用</div>
+          </div>
+          <span class="version">v0.1.0</span>
+          <span class="priority p1">P1</span>
+          <div class="notes">📝 自动选端口+开浏览器</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.filter-btn').forEach(btn => {{
+  btn.addEventListener('click', () => {{
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const filter = btn.dataset.filter;
+    document.querySelectorAll('.feature').forEach(f => {{
+      if (filter === 'all' || f.dataset.status === filter) {{
+        f.style.display = '';
+      }} else {{
+        f.style.display = 'none';
+      }}
+    }});
+  }});
+}});
+</script>
+</body>
+</html>
