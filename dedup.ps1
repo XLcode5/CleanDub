@@ -22,7 +22,7 @@ param(
     [string[]]$ExcludeExt,      # 排除这些扩展名
     [switch]$NoRecurse,
     [ValidateSet('Cleanest','Newest','Original','Highest')][string]$Strategy = 'Cleanest',
-    [ValidateSet('Full','Head')][string]$Verify = 'Full',
+    [ValidateSet('Full','Head','Name','Size')][string]$Verify = 'Full',
     [int]$HeadKB = 32,
     [long]$MinSize = 1,
     [switch]$NoLinkCheck,

@@ -132,8 +132,10 @@ body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;background:va
       <div class="control-group">
         <label>扫描方式</label>
         <select id="verify">
-          <option value="Full">精确扫描（完整比对，最准）</option>
-          <option value="Head">快速扫描（只比开头，快很多）</option>
+          <option value="Full">全量哈希（准确，较慢）</option>
+          <option value="Head">只比头部（最快，可能误判）</option>
+          <option value="Name">只比文件名（最快，跨目录同名命中）</option>
+          <option value="Size">只比文件大小（最快，可能误判）</option>
         </select>
       </div>
       <div class="control-group">
@@ -260,13 +262,13 @@ function loadPage(offset){st.offset=offset;var q="/api/page?offset="+offset+"&li
 
 function showProgress(p){el("progWrap").style.display="block";var pct=Number(p.percent)||0;el("progFill").style.width=pct+"%";var phaseText={indexing:"索引目录",scanning:"扫描中",done:"完成",error:"出错",idle:"等待"}[p.phase]||p.phase;el("progPhase").textContent=phaseText+" · "+(p.message||"");el("progTime").textContent=(p.elapsedSec||0)+" 秒";if(p.phase==="done"){el("progFill").style.background="var(--success)"}else if(p.phase==="error"){el("progFill").style.background="var(--danger)"}else{el("progFill").style.background="var(--accent)"}}
 
-function pollProgress(){api("/api/progress").then(function(d){if(!d.ok)return;showProgress(d.progress);if(d.busy){st.polling=setTimeout(pollProgress,800)}else{st.scanning=false;el("scanBtn").disabled=false;el("stopScanBtn").style.display="none";if(d.progress&&d.progress.phase==="done"){loadPage(0)}}})}
+function pollProgress(){api("/api/progress").then(function(d){if(!d.ok)return;showProgress(d.progress);if(d.busy){st.polling=setTimeout(pollProgress,800)}else{st.scanning=false;el("scanBtn").style.display="inline-flex";el("stopScanBtn").style.display="none";if(d.progress&&d.progress.phase==="done"){loadPage(0)}}})}
 
-function startScan(){st.scanning=true;el("scanBtn").disabled=true;el("stopScanBtn").style.display="inline-flex";el("progFill").style.width="0%";
-api("/api/scan","POST",{path:el("path").value,recurse:el("recurse").checked,strategy:el("strategy").value,verify:el("verify").value,headKB:Number(el("headKB").value),detectLinks:el("links").checked,minFileSize:Number(el("minFileSize").value)}).then(function(d){if(!d.ok){alert("扫描失败: "+d.error);st.scanning=false;el("scanBtn").disabled=false;el("stopScanBtn").style.display="none";return}
+function startScan(){st.scanning=true;el("scanBtn").style.display="none";el("stopScanBtn").style.display="inline-flex";el("progFill").style.width="0%";
+api("/api/scan","POST",{path:el("path").value,recurse:el("recurse").checked,strategy:el("strategy").value,verify:el("verify").value,headKB:Number(el("headKB").value),detectLinks:el("links").checked,minFileSize:Number(el("minFileSize").value)}).then(function(d){if(!d.ok){alert("扫描失败: "+d.error);st.scanning=false;el("scanBtn").style.display="inline-flex";el("stopScanBtn").style.display="none";return}
 el("summary").innerHTML="";el("groups").innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><p>正在扫描…</p></div>';pollProgress()})}
 
-function stopScan(){if(!confirm("确定要终止当前扫描吗？已扫描的进度会丢失。"))return;api("/api/stop-scan","POST",{}).then(function(d){if(d.ok){st.scanning=false;el("scanBtn").disabled=false;el("stopScanBtn").style.display="none";el("progPhase").textContent="已终止";el("progFill").style.background="var(--warning)"}})}
+function stopScan(){if(!confirm("确定要终止当前扫描吗？已扫描的进度会丢失。"))return;api("/api/stop-scan","POST",{}).then(function(d){if(d.ok){st.scanning=false;el("scanBtn").style.display="inline-flex";el("stopScanBtn").style.display="none";el("progPhase").textContent="已终止";el("progFill").style.background="var(--warning)"}})}
 
 function loadQuarantine(){api("/api/quarantine").then(function(d){if(!d.ok)return;el("qPanel").style.display="block";if(!d.sessions||d.sessions.length===0){el("qList").innerHTML='<div style="color:var(--text-secondary);text-align:center;padding:20px">隔离区为空</div>';return}
 var h="";for(var i=0;i<d.sessions.length;i++){var s=d.sessions[i];h+='<div class="quarantine-item"><span class="path">'+esc(s.name)+' · '+s.files+' 个 · '+fmt(s.bytes)+'</span><div class="actions"><button class="btn btn-ghost" data-restore="'+esc(s.path)+'">还原</button><button class="btn btn-danger" data-purge="'+esc(s.path)+'">清空</button></div></div>'}
@@ -275,8 +277,8 @@ var ps=el("qList").querySelectorAll("button[data-purge]");for(var m=0;m<ps.lengt
 
 var browseCurrentDir='';
 function openBrowseModal(){el('browseModal').classList.add('active');var current=el('path').value.split(';')[0].trim()||'';loadBrowse(current)}
-function loadBrowse(dir){api('/api/browse?dir='+encodeURIComponent(dir)).then(function(d){if(!d.ok){el('browsePath').textContent='错误：'+d.error;return}browseCurrentDir=d.current;el('browsePath').textContent=d.current;var h='';for(var i=0;i<d.items.length;i++){var item=d.items[i];var icon=item.isDir?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>';var cls=item.isParent?'dir-item parent':'dir-item';var sizeText=item.isDir?'':fmt(item.size);h+='<div class="'+cls+'" data-path="'+esc(item.path)+'" data-isdir="'+item.isDir+'">'+icon+'<span class="name">'+esc(item.name)+'</span><span class="size">'+sizeText+'</span></div>'}
-el('browseList').innerHTML=h||'<div style="color:var(--text-secondary);text-align:center;padding:20px">空目录</div>';var items=el('browseList').querySelectorAll('.dir-item');for(var j=0;j<items.length;j++){items[j].addEventListener('click',function(){var p=this.getAttribute('data-path');var isDir=this.getAttribute('data-isdir')==='true';if(isDir){loadBrowse(p)}});items[j].addEventListener('dblclick',function(){var p=this.getAttribute('data-path');var isDir=this.getAttribute('data-isdir')==='true';if(isDir){selectBrowseDir(p)}})}})}
+function loadBrowse(dir){api('/api/browse?dir='+encodeURIComponent(dir)).then(function(d){if(!d.ok){el('browsePath').textContent='错误：'+d.error;return}browseCurrentDir=d.current;el('browsePath').textContent=d.current;var h='';for(var i=0;i<d.items.length;i++){var item=d.items[i];var icon=item.isDir?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>';var cls=item.isParent?'dir-item parent':'dir-item';var sizeText=item.isDir?'':fmt(item.size);h+='<div class="'+cls+'" data-path="'+esc(item.path)+'" data-isdir="'+String(item.isDir)+'">'+icon+'<span class="name">'+esc(item.name)+'</span><span class="size">'+sizeText+'</span></div>'}
+el('browseList').innerHTML=h||'<div style="color:var(--text-secondary);text-align:center;padding:20px">空目录</div>';var items=el('browseList').querySelectorAll('.dir-item');for(var j=0;j<items.length;j++){items[j].addEventListener('click',function(e){e.stopPropagation();var p=this.getAttribute('data-path');var isDir=this.getAttribute('data-isdir')==='true';if(isDir){loadBrowse(p)}else{selectBrowseDir(p)}});items[j].addEventListener('dblclick',function(e){e.stopPropagation();var p=this.getAttribute('data-path');var isDir=this.getAttribute('data-isdir')==='true';if(isDir){selectBrowseDir(p)}})}})}
 function selectBrowseDir(dir){var current=el('path').value.trim();if(current&&!current.endsWith(';')){current+='; '}el('path').value=current+dir;el('browseModal').classList.remove('active')}
 
 el('browseBtn').addEventListener('click',openBrowseModal);

@@ -15,7 +15,7 @@ param(
     [switch]$NoBrowser,
     [string]$DefaultPath = '',
     [int]$HeadKB = 32,
-    [ValidateSet('Full','Head')][string]$Verify = 'Full',
+    [ValidateSet('Full','Head','Name','Size')][string]$Verify = 'Full',
     [string]$TokenFile = '',
     [switch]$SelfTest
 )

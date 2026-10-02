@@ -230,7 +230,7 @@ function Invoke-DedupScan2 {
         [Parameter(Mandatory=$true)][string]$Path,
         [bool]$Recurse = $true,
         [ValidateSet('Newest','Original','Highest','Cleanest')][string]$Strategy = 'Cleanest',
-        [ValidateSet('Full','Head')][string]$Verify = 'Full',
+        [ValidateSet('Full','Head','Name','Size')][string]$Verify = 'Full',
         [long]$HeadBytes = 32768,
         [bool]$DetectLinks = $true,
         [string[]]$ExcludeDir = @(),
@@ -326,81 +326,107 @@ function Invoke-DedupScan2 {
     Write-ProgressFile2 -File $ProgressFile -Phase 'fullhash' -Message ('全量哈希：' + $preSurvivors + ' 个候选') -Current 0 -Total ([Math]::Max($preSurvivors,1)) -ElapsedSec $sw.Elapsed.TotalSeconds
     if (-not $Quiet) { Write-Host ('  [3/4] prehash（头部 ' + (Format-Size2 $HeadBytes) + '）：幸存 ' + $preGroups.Count + ' 组 / ' + $preSurvivors + ' 个文件（其余头部不同，已排除）') -ForegroundColor Gray }
 
-    # ---- 阶段 3：全量哈希 ----
+    # ---- 阶段 3：全量哈希（或按文件名/大小快速分组） ----
     $byFull = New-Object System.Collections.ArrayList
     $fullHashed = 0
     $hardlinkGroups = 0
     $hardlinkVictims = 0
-    $sha2 = [System.Security.Cryptography.SHA256]::Create()
-    try {
+    
+    if ($Verify -eq 'Name') {
+        # 只按文件名分组（去掉 (N) 后缀，跨目录）
+        $byName = @{}
         foreach ($g in $preGroups) {
-            $clusters = New-Object System.Collections.ArrayList
-
-            # (a) 硬链接身份归并：只有当“同一个 fileIndex 在本组内出现 >= 2 次”时，
-            #     这些路径才是同一份数据的多个名字。只出现一次的身份没有任何信息量，
-            #     绝不能用它来代替内容比较（否则每个文件自成一组，永远查不出重复）。
-            $byIdent = @{}
             foreach ($fi in $g) {
-                $id = $null
-                if ($idMap.ContainsKey($fi.FullName)) { $id = [string]$idMap[$fi.FullName] }
-                if (-not $id) { continue }
-
-                $idParts = $id.Split(':')
-                $idxOnly = [string]($idParts[0] + ':' + $idParts[1])
-                if (-not $byIdent.ContainsKey($idxOnly)) { $byIdent[$idxOnly] = New-Object System.Collections.ArrayList }
-                Add-Item -Collection $byIdent[$idxOnly] -Item $fi -Where 'byIdent'
+                $baseName = [System.IO.Path]::GetFileNameWithoutExtension($fi.Name)
+                $cleanName = [System.Text.RegularExpressions.Regex]::Replace($baseName, '(\s*\(\d+\))+$', '')
+                $key = $cleanName.ToLowerInvariant() + '.' + [System.IO.Path]::GetExtension($fi.Name).ToLowerInvariant()
+                if (-not $byName.ContainsKey($key)) { $byName[$key] = New-Object System.Collections.ArrayList }
+                [void]$byName[$key].Add($fi)
             }
-            $rest = New-Object System.Collections.ArrayList
-            foreach ($k in $byIdent.Keys) {
-                $names = $byIdent[$k]
-                if ($names.Count -ge 2) {
-                    # 真正的硬链接：内容必然相同，直接成组
-                    Add-Item -Collection $clusters -Item $names -Where 'clusters-hardlink'
-                    $hardlinkGroups++
-                    $hardlinkVictims += ($names.Count - 1)
-                } else {
-                    foreach ($fi in $names) { Add-Item -Collection $rest -Item $fi -Where 'rest' }
-                }
-            }
-            if ($rest.Count -gt 0) {
-                # (b) 内容归并：已确认为“全文件哈希”的直接复用，否则按 Verify 决定是否全量读
-                $byHash2 = @{}
-                foreach ($fi in $rest) {
-                    $known = $null
-                    $isFull = $false
-                    if ($script:KnownFull.ContainsKey($fi.FullName)) { $known = [string]$script:KnownFull[$fi.FullName]; $isFull = $true }
-                    elseif ($script:HashCache.ContainsKey($fi.FullName)) {
-                        $c = $script:HashCache[$fi.FullName]
-                        if ([bool]$c.IsFull) { $known = [string]$c.Hash; $isFull = $true }
-                    }
-                    if ($isFull) {
-                        $h = $known
-                    } elseif ($Verify -eq 'Head') {
-                        # Head 模式复用 prehash 结果；取不到就退回全量哈希，绝不让 $null.Hash 把整个扫描打断
-                        if ($script:HashCache.ContainsKey($fi.FullName)) {
-                            $h = [string]$script:HashCache[$fi.FullName].Hash
-                        } else {
-                            $r3 = Get-FileHashEx -Path $fi.FullName -Size ([long]$fi.Length) -HeadBytes 0 -Sha $sha2 -Buf $buf
-                            $fullHashed++
-                            if ($r3.Hash -eq $null) { continue }
-                            $h = $r3.Hash
-                        }
-                    } else {
-                        $r2 = Get-FileHashEx -Path $fi.FullName -Size ([long]$fi.Length) -HeadBytes 0 -Sha $sha2 -Buf $buf
-                        $fullHashed++
-                        if ($r2.Hash -eq $null) { continue }
-                        $h = $r2.Hash
-                    }
-                    if ($h -eq $null) { continue }
-                    if (-not $byHash2.ContainsKey($h)) { $byHash2[$h] = New-Object System.Collections.ArrayList }
-                    Add-Item -Collection $byHash2[$h] -Item $fi -Where 'byHash2'
-                }
-                foreach ($k in $byHash2.Keys) { Add-Item -Collection $clusters -Item $byHash2[$k] -Where 'clusters-hash' }
-            }
-            foreach ($c in $clusters) { if ($c.Count -ge 2) { Add-Item -Collection $byFull -Item $c -Where 'byFull' } }
         }
-    } finally { $sha2.Dispose() }
-    if (-not $Quiet) { Write-Host ('  [4/4] 全量哈希：新读取 ' + $fullHashed + ' 个文件，硬链接组 ' + $hardlinkGroups + '，耗时 ' + [math]::Round($sw.Elapsed.TotalSeconds,1) + ' 秒') -ForegroundColor Gray }
+        foreach ($k in $byName.Keys) {
+            if ($byName[$k].Count -ge 2) { [void]$byFull.Add($byName[$k]) }
+        }
+        if (-not $Quiet) { Write-Host ('  [4/4] 文件名分组：' + $byFull.Count + ' 组（仅按文件名，未校验内容）') -ForegroundColor Gray }
+    } elseif ($Verify -eq 'Size') {
+        # 只按大小分组（已经在阶段1完成，直接复用）
+        foreach ($kv in $sizeGroups) {
+            if ($kv.Value.Count -ge 2) { [void]$byFull.Add($kv.Value) }
+        }
+        if (-not $Quiet) { Write-Host ('  [4/4] 大小分组：' + $byFull.Count + ' 组（仅按大小，未校验内容）') -ForegroundColor Gray }
+    } else {
+        # Full 或 Head：内容级哈希
+        $sha2 = [System.Security.Cryptography.SHA256]::Create()
+        try {
+            foreach ($g in $preGroups) {
+                $clusters = New-Object System.Collections.ArrayList
+
+                # (a) 硬链接身份归并：只有当“同一个 fileIndex 在本组内出现 >= 2 次”时，
+                #     这些路径才是同一份数据的多个名字。只出现一次的身份没有任何信息量，
+                #     绝不能用它来代替内容比较（否则每个文件自成一组，永远查不出重复）。
+                $byIdent = @{}
+                foreach ($fi in $g) {
+                    $id = $null
+                    if ($idMap.ContainsKey($fi.FullName)) { $id = [string]$idMap[$fi.FullName] }
+                    if (-not $id) { continue }
+
+                    $idParts = $id.Split(':')
+                    $idxOnly = [string]($idParts[0] + ':' + $idParts[1])
+                    if (-not $byIdent.ContainsKey($idxOnly)) { $byIdent[$idxOnly] = New-Object System.Collections.ArrayList }
+                    Add-Item -Collection $byIdent[$idxOnly] -Item $fi -Where 'byIdent'
+                }
+                $rest = New-Object System.Collections.ArrayList
+                foreach ($k in $byIdent.Keys) {
+                    $names = $byIdent[$k]
+                    if ($names.Count -ge 2) {
+                        # 真正的硬链接：内容必然相同，直接成组
+                        Add-Item -Collection $clusters -Item $names -Where 'clusters-hardlink'
+                        $hardlinkGroups++
+                        $hardlinkVictims += ($names.Count - 1)
+                    } else {
+                        foreach ($fi in $names) { Add-Item -Collection $rest -Item $fi -Where 'rest' }
+                    }
+                }
+                if ($rest.Count -gt 0) {
+                    # (b) 内容归并：已确认为“全文件哈希”的直接复用，否则按 Verify 决定是否全量读
+                    $byHash2 = @{}
+                    foreach ($fi in $rest) {
+                        $known = $null
+                        $isFull = $false
+                        if ($script:KnownFull.ContainsKey($fi.FullName)) { $known = [string]$script:KnownFull[$fi.FullName]; $isFull = $true }
+                        elseif ($script:HashCache.ContainsKey($fi.FullName)) {
+                            $c = $script:HashCache[$fi.FullName]
+                            if ([bool]$c.IsFull) { $known = [string]$c.Hash; $isFull = $true }
+                        }
+                        if ($isFull) {
+                            $h = $known
+                        } elseif ($Verify -eq 'Head') {
+                            # Head 模式复用 prehash 结果；取不到就退回全量哈希，绝不让 $null.Hash 把整个扫描打断
+                            if ($script:HashCache.ContainsKey($fi.FullName)) {
+                                $h = [string]$script:HashCache[$fi.FullName].Hash
+                            } else {
+                                $r3 = Get-FileHashEx -Path $fi.FullName -Size ([long]$fi.Length) -HeadBytes 0 -Sha $sha2 -Buf $buf
+                                $fullHashed++
+                                if ($r3.Hash -eq $null) { continue }
+                                $h = $r3.Hash
+                            }
+                        } else {
+                            $r2 = Get-FileHashEx -Path $fi.FullName -Size ([long]$fi.Length) -HeadBytes 0 -Sha $sha2 -Buf $buf
+                            $fullHashed++
+                            if ($r2.Hash -eq $null) { continue }
+                            $h = $r2.Hash
+                        }
+                        if ($h -eq $null) { continue }
+                        if (-not $byHash2.ContainsKey($h)) { $byHash2[$h] = New-Object System.Collections.ArrayList }
+                        Add-Item -Collection $byHash2[$h] -Item $fi -Where 'byHash2'
+                    }
+                    foreach ($k in $byHash2.Keys) { Add-Item -Collection $clusters -Item $byHash2[$k] -Where 'clusters-hash' }
+                }
+                foreach ($c in $clusters) { if ($c.Count -ge 2) { Add-Item -Collection $byFull -Item $c -Where 'byFull' } }
+            }
+        } finally { $sha2.Dispose() }
+        if (-not $Quiet) { Write-Host ('  [4/4] 全量哈希：新读取 ' + $fullHashed + ' 个文件，硬链接组 ' + $hardlinkGroups + '，耗时 ' + [math]::Round($sw.Elapsed.TotalSeconds,1) + ' 秒') -ForegroundColor Gray }
+    }
 
     # ---- 汇总 ----
     $groups = New-Object System.Collections.ArrayList
