@@ -1,0 +1,9 @@
+{
+  "defaultPath": "F:\\WeChat_old_3x",
+  "port": 0,
+  "openBrowser": true,
+  "strategy": "Cleanest",
+  "verify": "Full",
+  "detectLinks": true,
+  "excludeDirs": []
+}

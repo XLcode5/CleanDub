@@ -1,0 +1,39 @@
+# 隔离区与日志（运行时生成）
+_dedup_quarantine/
+_dedup_logs/
+
+# 备份目录
+_backup_original/
+_archive_v1/
+
+# 临时文件
+*.tmp
+*.temp
+*.bak
+
+# 扫描输出
+plan*.csv
+summary.txt
+progress.json
+
+# 打包输出
+*.exe
+*.msi
+*.zip
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.user
+
+# 系统文件
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# 测试数据
+_test/
+_testdata/
