@@ -224,6 +224,10 @@ body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;background:va
     <button class="btn btn-danger" id="delBtn">永久删除</button>
     <div class="spacer"></div>
     <span class="info" id="selInfo">已勾选 0 个文件</span>
+    <button class="btn btn-ghost" id="updateBtn" title="检查更新">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M21 12a9 9 0 11-9-9"/><path d="M21 3v9h-9"/></svg>
+      <span id="updateText">检查更新</span>
+    </button>
     <button class="btn btn-ghost" id="allBtn">全选</button>
     <button class="btn btn-ghost" id="noneBtn">全不选</button>
     <button class="btn btn-ghost" id="expBtn">导出 CSV</button>
@@ -339,6 +343,58 @@ function toggleHistory(){var p=el("hPanel");if(p.style.display==="block"){p.styl
 el("hShowBtn").addEventListener("click",toggleHistory);
 function refreshHistoryIfOpen(){var p=el("hPanel");if(p&&p.style.display==="block"){loadHistory()}}
 el("stopBtn").addEventListener("click",function(){if(confirm("关闭本地服务？"))api("/api/stop").then(function(){document.body.innerHTML="<div style='padding:60px;text-align:center;font-size:18px;color:var(--text-secondary)'>服务已停止，可以关闭此页面。</div>"})});
+
+// 自动更新
+var updateState = { checking: false, available: false, latest: '', url: '' };
+function checkUpdate(silent) {
+  if (updateState.checking) return;
+  updateState.checking = true;
+  el('updateText').textContent = '检查中…';
+  api('/api/update/check', 'POST', {}).then(function() {
+    setTimeout(function() { pollUpdateStatus(silent); }, 2000);
+  });
+}
+function pollUpdateStatus(silent) {
+  api('/api/update').then(function(d) {
+    if (!d.ok) { updateState.checking = false; el('updateText').textContent = '检查更新'; return; }
+    if (d.checking) { setTimeout(function() { pollUpdateStatus(silent); }, 2000); return; }
+    updateState.checking = false;
+    updateState.available = d.updateAvailable;
+    updateState.latest = d.latestVersion;
+    updateState.url = d.downloadUrl;
+    if (d.updateAvailable) {
+      el('updateText').textContent = '发现 v' + d.latestVersion;
+      el('updateBtn').style.background = 'var(--success)';
+      el('updateBtn').style.color = '#fff';
+      if (!silent) {
+        if (confirm('发现新版本 v' + d.latestVersion + '（当前 v' + d.currentVersion + '），是否下载？')) {
+          downloadUpdate();
+        }
+      }
+    } else {
+      el('updateText').textContent = '已是最新';
+      setTimeout(function() { el('updateText').textContent = '检查更新'; el('updateBtn').style.background = ''; el('updateBtn').style.color = ''; }, 3000);
+    }
+  });
+}
+function downloadUpdate() {
+  if (!updateState.url) { alert('没有下载地址'); return; }
+  el('updateText').textContent = '下载中…';
+  api('/api/update/download', 'POST', {}).then(function(d) {
+    if (d.ok) {
+      alert('更新已下载到：' + d.path + '\n请手动运行安装。');
+      el('updateText').textContent = '已下载';
+    } else {
+      alert('下载失败：' + d.error);
+      el('updateText').textContent = '检查更新';
+    }
+  });
+}
+
+el('updateBtn').addEventListener('click', function() { checkUpdate(false); });
+
+// 启动时静默检查
+setTimeout(function() { checkUpdate(true); }, 3000);
 
 api("/api/config").then(function(c){if(!c.ok)return;el("path").value=c.basePath||"";if(c.strategy)el("strategy").value=c.strategy;if(c.verify)el("verify").value=c.verify;if(c.headKB)el("headKB").value=String(c.headKB);if(c.detectLinks===false)el("links").checked=false;showProgress({phase:"idle",message:"空闲",elapsedSec:0,percent:0})});
 </script>

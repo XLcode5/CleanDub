@@ -30,6 +30,85 @@ if (-not $script:AppDir) { $script:AppDir = (Get-Location).ProviderPath }
 $script:PageSize = 50
 . (Join-Path $script:AppDir 'dedup_core.ps1')
 
+# ---------------- 版本与自动更新 ----------------
+$script:VersionInfo = $null
+$script:UpdateState = @{
+    LastCheck = $null
+    LatestVersion = $null
+    DownloadUrl = $null
+    UpdateAvailable = $false
+    Checking = $false
+}
+
+function Get-LocalVersion {
+    $vf = Join-Path $script:AppDir 'version.json'
+    if (Test-Path -LiteralPath $vf) {
+        try {
+            $script:VersionInfo = Get-Content -Raw -LiteralPath $vf -Encoding UTF8 | ConvertFrom-Json
+            return [string]$script:VersionInfo.version
+        } catch { }
+    }
+    return '0.0.0'
+}
+
+function Compare-Version {
+    param([string]$Local, [string]$Remote)
+    $l = $Local -split '\.' | ForEach-Object { [int]$_ }
+    $r = $Remote -split '\.' | ForEach-Object { [int]$_ }
+    for ($i = 0; $i -lt [Math]::Max($l.Count, $r.Count); $i++) {
+        $lv = if ($i -lt $l.Count) { $l[$i] } else { 0 }
+        $rv = if ($i -lt $r.Count) { $r[$i] } else { 0 }
+        if ($rv -gt $lv) { return 1 }   # 远程更新
+        if ($rv -lt $lv) { return -1 }  # 本地更新
+    }
+    return 0
+}
+
+function Check-UpdateAsync {
+    if ($script:UpdateState.Checking) { return }
+    $script:UpdateState.Checking = $true
+    $script:UpdateState.LastCheck = Get-Date
+    
+    Start-Job -ScriptBlock {
+        param($url, $localVer)
+        try {
+            $resp = Invoke-RestMethod -Uri $url -TimeoutSec 10 -ErrorAction Stop
+            $latest = $resp.tag_name -replace '^v', ''
+            $downloadUrl = $null
+            foreach ($asset in $resp.assets) {
+                if ($asset.name -match '\.exe$') { $downloadUrl = $asset.browser_download_url; break }
+            }
+            return @{
+                ok = $true
+                latest = $latest
+                downloadUrl = $downloadUrl
+                releaseNotes = $resp.body
+                publishedAt = $resp.published_at
+            }
+        } catch {
+            return @{ ok = $false; error = $_.Exception.Message }
+        }
+    } -ArgumentList $script:VersionInfo.updateCheckUrl, (Get-LocalVersion) | Out-Null
+}
+
+function Get-UpdateStatus {
+    # 检查后台任务状态
+    $job = Get-Job -State Completed -ErrorAction SilentlyContinue | Where-Object { $_.Name -like '*Update*' } | Select-Object -First 1
+    if ($job) {
+        $result = Receive-Job -Job $job -ErrorAction SilentlyContinue
+        Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
+        $script:UpdateState.Checking = $false
+        if ($result.ok) {
+            $script:UpdateState.LatestVersion = $result.latest
+            $script:UpdateState.DownloadUrl = $result.downloadUrl
+            $cmp = Compare-Version -Local (Get-LocalVersion) -Remote $result.latest
+            $script:UpdateState.UpdateAvailable = ($cmp -gt 0)
+            return $result
+        }
+    }
+    return $null
+}
+
 function Write-Log2 { param([string]$Message) Write-Host ((Get-Date).ToString('HH:mm:ss') + '  ' + $Message) }
 
 # ---------------- 配置 ----------------
@@ -677,6 +756,63 @@ while (-not $state.Stop) {
             $all = [System.IO.File]::ReadAllBytes($tmp)
             try { Remove-Item -LiteralPath $tmp -Force } catch { }
             Write-HttpResponse -Stream $stream -Code 200 -ContentType 'text/csv; charset=utf-8' -Body $all -ExtraHeaders ('Content-Disposition: attachment; filename="dedup-plan.csv"' + (Get-CRLF))
+            continue
+        }
+
+        if ($pathOnly -eq '/api/update') {
+            # 检查更新状态
+            $updateResult = Get-UpdateStatus
+            $localVer = Get-LocalVersion
+            
+            $resp = [ordered]@{
+                ok = $true
+                currentVersion = $localVer
+                channel = [string]$script:VersionInfo.channel
+                updateAvailable = [bool]$script:UpdateState.UpdateAvailable
+                latestVersion = [string]$script:UpdateState.LatestVersion
+                downloadUrl = [string]$script:UpdateState.DownloadUrl
+                lastCheck = if ($script:UpdateState.LastCheck) { $script:UpdateState.LastCheck.ToString('s') } else { $null }
+                checking = [bool]$script:UpdateState.Checking
+            }
+            
+            # 如果有新结果，附加 releaseNotes
+            if ($updateResult -and $updateResult.releaseNotes) {
+                $resp['releaseNotes'] = [string]$updateResult.releaseNotes
+                $resp['publishedAt'] = [string]$updateResult.publishedAt
+            }
+            
+            Write-JsonResponse -Stream $stream -Object $resp
+            continue
+        }
+        
+        if ($pathOnly -eq '/api/update/check' -and $req.Method -eq 'POST') {
+            # 主动触发检查更新
+            Check-UpdateAsync
+            Write-JsonResponse -Stream $stream -Object ([ordered]@{ ok = $true; message = '正在检查更新…' })
+            continue
+        }
+        
+        if ($pathOnly -eq '/api/update/download' -and $req.Method -eq 'POST') {
+            if (-not $script:UpdateState.UpdateAvailable -or -not $script:UpdateState.DownloadUrl) {
+                Write-JsonResponse -Stream $stream -Object ([ordered]@{ ok = $false; error = '没有可用的更新' }) -Code 400
+                continue
+            }
+            
+            # 后台下载
+            $dlUrl = $script:UpdateState.DownloadUrl
+            $dlPath = Join-Path $env:TEMP ('CleanDub-update-' + $script:UpdateState.LatestVersion + '.exe')
+            
+            Start-Job -ScriptBlock {
+                param($url, $out)
+                try {
+                    Invoke-WebRequest -Uri $url -OutFile $out -TimeoutSec 300 -ErrorAction Stop
+                    return @{ ok = $true; path = $out; size = (Get-Item $out).Length }
+                } catch {
+                    return @{ ok = $false; error = $_.Exception.Message }
+                }
+            } -ArgumentList $dlUrl, $dlPath | Out-Null
+            
+            Write-JsonResponse -Stream $stream -Object ([ordered]@{ ok = $true; message = '开始下载更新…'; path = $dlPath })
             continue
         }
 
