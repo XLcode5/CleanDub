@@ -51,6 +51,11 @@ body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;background:va
 .group-header{background:var(--bg-hover);padding:12px 16px;font-size:13px;color:var(--text-secondary);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
 .group-header .dir{font-weight:500}
 .group-header .badge{background:var(--accent);color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600}
+.sortable-header{cursor:pointer;user-select:none;display:flex;align-items:center;gap:4px;transition:color .2s}
+.sortable-header:hover{color:var(--accent)}
+.sortable-header .sort-icon{font-size:11px;opacity:.4;transition:opacity .2s}
+.sortable-header.sort-asc .sort-icon{opacity:1;content:"▲"}
+.sortable-header.sort-desc .sort-icon{opacity:1}
 .file-row{display:grid;grid-template-columns:32px 1fr 140px 100px;gap:12px;padding:10px 16px;align-items:center;font-size:13px;border-bottom:1px solid var(--border);transition:background .2s}
 .file-row:last-child{border-bottom:none}
 .file-row:hover{background:var(--bg-hover)}
@@ -74,6 +79,15 @@ body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;background:va
 .quarantine-item{display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;font-size:13px}
 .quarantine-item .path{flex:1;word-break:break-all;color:var(--text-secondary)}
 .quarantine-item .actions{display:flex;gap:8px}
+.history-panel{display:none;margin-top:16px}
+.history-item{display:grid;grid-template-columns:160px 110px 90px 110px 1fr;gap:12px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;font-size:13px;align-items:center}
+.history-item .op-tag{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;background:var(--accent);color:#fff}
+.history-item .op-tag.purge-permanent{background:var(--danger)}
+.history-item .op-tag.restore{background:var(--success)}
+.history-item .time{color:var(--text-secondary);font-variant-numeric:tabular-nums}
+.history-item .num{font-variant-numeric:tabular-nums;color:var(--text-secondary)}
+.history-item .detail{color:var(--text);word-break:break-all}
+.history-empty{color:var(--text-secondary);text-align:center;padding:20px}
 .empty-state{text-align:center;padding:60px 20px;color:var(--text-secondary)}
 .empty-state svg{width:64px;height:64px;margin-bottom:16px;opacity:.5}
 .empty-state p{font-size:16px;margin-bottom:8px}
@@ -203,6 +217,8 @@ body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;background:va
 
   <div class="card quarantine-panel" id="qPanel"><div class="card-title">隔离区管理</div><div id="qList"></div></div>
 
+  <div class="card history-panel" id="hPanel"><div class="card-title">操作历史（最近的清理/还原记录）</div><div id="hList"></div></div>
+
   <div class="action-bar">
     <button class="btn btn-success" id="qBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M5 8l6 6 6-6"/></svg>移入隔离区</button>
     <button class="btn btn-danger" id="delBtn">永久删除</button>
@@ -211,7 +227,9 @@ body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;background:va
     <button class="btn btn-ghost" id="allBtn">全选</button>
     <button class="btn btn-ghost" id="noneBtn">全不选</button>
     <button class="btn btn-ghost" id="expBtn">导出 CSV</button>
+    <button class="btn btn-ghost" id="expJsonBtn">导出 JSON</button>
     <button class="btn btn-ghost" id="qShowBtn">隔离区</button>
+    <button class="btn btn-ghost" id="hShowBtn">历史</button>
     <button class="btn btn-ghost" id="stopBtn">关闭服务</button>
   </div>
 </div>
@@ -229,7 +247,7 @@ function toggleTheme(){var h=document.documentElement,b=document.querySelector('
 (function(){var s=localStorage.getItem('clearapp-theme');if(s==='light'){document.documentElement.setAttribute('data-theme','light')}})();
 
 var T="__TOKEN__";
-var st={offset:0,limit:50,total:0,filter:"",minKB:0,filterExt:"",groups:[],summary:null,selectedNow:0,selectedBytes:0,polling:null,scanning:false};
+var st={offset:0,limit:50,total:0,filter:"",minKB:0,filterExt:"",groups:[],summary:null,selectedNow:0,selectedBytes:0,polling:null,scanning:false,sortKey:null,sortDir:1};
 
 function el(id){return document.getElementById(id)}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
@@ -250,10 +268,17 @@ function rowHtml(f,isKeeper){var linkBadge=(f.links>1)?'<span style="font-size:1
 if(isKeeper){return '<div class="file-row keeper"><span></span><span class="name"><span class="tag">保留</span>'+esc(f.name)+'</span><span class="mtime">'+esc(f.mtime)+'</span><span class="size">'+fmt(f.size)+'</span></div>'}
 return '<div class="file-row victim"><span><input type="checkbox" class="pick" data-path="'+esc(f.path)+'"'+(f.selected?" checked":"")+'></span><span class="name"><span class="tag">删除</span>'+esc(f.name)+linkBadge+'</span><span class="mtime">'+esc(f.mtime)+'</span><span class="size">'+fmt(f.size)+'</span></div>'}
 
+function groupSize(g){var s=0;var vs=arr(g.victims);for(var i=0;i<vs.length;i++)s+=Number(vs[i].size)||0;if(g.keeper)s+=Number(g.keeper.size)||0;return s}
+function sortGroups(list){if(!st.sortKey)return list;var sorted=list.slice();sorted.sort(function(a,b){var va,vb;if(st.sortKey==='dir'){va=(a.dir||'').toLowerCase();vb=(b.dir||'').toLowerCase()}else if(st.sortKey==='size'){va=groupSize(a);vb=groupSize(b)}else if(st.sortKey==='count'){va=arr(a.victims).length;vb=arr(b.victims).length}else{return 0}if(va<vb)return -1*st.sortDir;if(va>vb)return 1*st.sortDir;return 0});return sorted}
+function toggleSort(key){if(st.sortKey===key){st.sortDir=-st.sortDir}else{st.sortKey=key;st.sortDir=1}renderPage(st.groups)}
+
 function renderPage(groups){st.groups=arr(groups);var box=el("groups");
 if(st.groups.length===0){box.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><p>没有找到重复文件</p><div class="sub">尝试调整筛选条件或扫描其他目录</div></div>';el("pagination").style.display="none";return}
-var h="";for(var i=0;i<st.groups.length;i++){var g=st.groups[i];h+='<div class="group-item"><div class="group-header"><span class="dir">['+(st.offset+i+1)+'] '+esc(g.dir)+'</span><span class="badge">'+g.victims.length+' 个副本</span></div>';h+=rowHtml(g.keeper,true);var vs=arr(g.victims);for(var j=0;j<vs.length;j++)h+=rowHtml(vs[j],false);h+="</div>"}box.innerHTML=h;el("pagination").style.display="flex";
+var sorted=sortGroups(st.groups);
+var h='<div class="group-item"><div class="group-header" style="padding:8px 16px"><span class="sortable-header '+(st.sortKey==='dir'?('sort-'+(st.sortDir>0?'asc':'desc')):'')+'" data-sort="dir">目录<span class="sort-icon">'+(st.sortKey==='dir'?(st.sortDir>0?'▲':'▼'):'⇅')+'</span></span><span style="display:flex;gap:24px"><span class="sortable-header '+(st.sortKey==='size'?('sort-'+(st.sortDir>0?'asc':'desc')):'')+'" data-sort="size">大小<span class="sort-icon">'+(st.sortKey==='size'?(st.sortDir>0?'▲':'▼'):'⇅')+'</span></span><span class="sortable-header '+(st.sortKey==='count'?('sort-'+(st.sortDir>0?'asc':'desc')):'')+'" data-sort="count">数量<span class="sort-icon">'+(st.sortKey==='count'?(st.sortDir>0?'▲':'▼'):'⇅')+'</span></span></span></div></div>';
+for(var i=0;i<sorted.length;i++){var g=sorted[i];h+='<div class="group-item"><div class="group-header"><span class="dir">['+(st.offset+i+1)+'] '+esc(g.dir)+'</span><span class="badge">'+g.victims.length+' 个副本</span></div>';h+=rowHtml(g.keeper,true);var vs=arr(g.victims);for(var j=0;j<vs.length;j++)h+=rowHtml(vs[j],false);h+="</div>"}box.innerHTML=h;el("pagination").style.display="flex";
 var cbs=box.querySelectorAll("input.pick");for(var k=0;k<cbs.length;k++){cbs[k].addEventListener("change",function(){var p=this.getAttribute("data-path");var checked=this.checked;api("/api/select","POST",{paths:[p],selected:checked}).then(function(d){if(d.ok){st.selectedNow=d.selectedNow;st.selectedBytes=(d.selectedBytes||st.selectedBytes);updateSel()}})})}
+var shs=box.querySelectorAll(".sortable-header");for(var m=0;m<shs.length;m++){shs[m].addEventListener("click",function(){toggleSort(this.getAttribute("data-sort"))})}
 var pages=Math.max(1,Math.ceil(st.total/st.limit));var cur=Math.floor(st.offset/st.limit)+1;el("pageInfo").textContent="第 "+cur+" / "+pages+" 页，共 "+st.total+" 组";el("prevBtn").disabled=st.offset<=0;el("nextBtn").disabled=(st.offset+st.limit)>=st.total}
 
 function updateSel(){el("selInfo").textContent="已勾选 "+st.selectedNow+" 个文件";var sv=el("selBytesV");if(sv)sv.textContent=fmt(st.selectedBytes||0)}
@@ -272,8 +297,8 @@ function stopScan(){if(!confirm("确定要终止当前扫描吗？已扫描的�
 
 function loadQuarantine(){api("/api/quarantine").then(function(d){if(!d.ok)return;el("qPanel").style.display="block";if(!d.sessions||d.sessions.length===0){el("qList").innerHTML='<div style="color:var(--text-secondary);text-align:center;padding:20px">隔离区为空</div>';return}
 var h="";for(var i=0;i<d.sessions.length;i++){var s=d.sessions[i];h+='<div class="quarantine-item"><span class="path">'+esc(s.name)+' · '+s.files+' 个 · '+fmt(s.bytes)+'</span><div class="actions"><button class="btn btn-ghost" data-restore="'+esc(s.path)+'">还原</button><button class="btn btn-danger" data-purge="'+esc(s.path)+'">清空</button></div></div>'}
-el("qList").innerHTML=h;var rs=el("qList").querySelectorAll("button[data-restore]");for(var k=0;k<rs.length;k++)rs[k].addEventListener("click",function(){api("/api/restore","POST",{session:this.getAttribute("data-restore")}).then(function(){loadQuarantine();loadPage(0)})});
-var ps=el("qList").querySelectorAll("button[data-purge]");for(var m=0;m<ps.length;m++)ps[m].addEventListener("click",function(){if(!confirm("永久删除这些隔离文件？不可恢复！"))return;api("/api/purge","POST",{session:this.getAttribute("data-purge")}).then(function(){loadQuarantine()})})})}
+el("qList").innerHTML=h;var rs=el("qList").querySelectorAll("button[data-restore]");for(var k=0;k<rs.length;k++)rs[k].addEventListener("click",function(){api("/api/restore","POST",{session:this.getAttribute("data-restore")}).then(function(){loadQuarantine();loadPage(0);refreshHistoryIfOpen()})});
+var ps=el("qList").querySelectorAll("button[data-purge]");for(var m=0;m<ps.length;m++)ps[m].addEventListener("click",function(){if(!confirm("永久删除这些隔离文件？不可恢复！"))return;api("/api/purge","POST",{session:this.getAttribute("data-purge")}).then(function(){loadQuarantine();refreshHistoryIfOpen()})})})}
 
 var browseCurrentDir='';
 function openBrowseModal(){el('browseModal').classList.add('active');var current=el('path').value.split(';')[0].trim()||'';loadBrowse(current)}
@@ -297,10 +322,22 @@ el("clearFilterBtn").addEventListener("click",function(){el("filter").value="";s
 el("filter").addEventListener("keydown",function(e){if(e.key==="Enter"){applyFilters()}});
 el("allBtn").addEventListener("click",function(){api("/api/select","POST",{mode:"all"}).then(function(d){if(d.ok){st.selectedNow=d.selectedNow;loadPage(st.offset)}})});
 el("noneBtn").addEventListener("click",function(){api("/api/select","POST",{mode:"none"}).then(function(d){if(d.ok){st.selectedNow=d.selectedNow;loadPage(st.offset)}})});
-el("qBtn").addEventListener("click",function(){if(!confirm("把勾选的文件移入隔离区？（可一键还原）"))return;api("/api/quarantine","POST",{paths:[]}).then(function(d){if(!d.ok){alert("失败: "+d.error);return}st.selectedNow=d.selectedNow;updateSel();loadPage(st.offset)})});
-el("delBtn").addEventListener("click",function(){if(!confirm("永久删除勾选的文件？不可恢复！建议改用「移入隔离区」。"))return;if(!confirm("再次确认：真的要永久删除吗？"))return;api("/api/delete","POST",{confirm:true,paths:[]}).then(function(d){if(!d.ok){alert("失败: "+d.error);return}st.selectedNow=d.selectedNow;updateSel();loadPage(st.offset)})});
+el("qBtn").addEventListener("click",function(){if(!confirm("把勾选的文件移入隔离区？（可一键还原）"))return;api("/api/quarantine","POST",{paths:[]}).then(function(d){if(!d.ok){alert("失败: "+d.error);return}st.selectedNow=d.selectedNow;updateSel();loadPage(st.offset);refreshHistoryIfOpen()})});
+el("delBtn").addEventListener("click",function(){if(!confirm("永久删除勾选的文件？不可恢复！建议改用「移入隔离区」。"))return;if(!confirm("再次确认：真的要永久删除吗？"))return;api("/api/delete","POST",{confirm:true,paths:[]}).then(function(d){if(!d.ok){alert("失败: "+d.error);return}st.selectedNow=d.selectedNow;updateSel();loadPage(st.offset);refreshHistoryIfOpen()})});
 el("expBtn").addEventListener("click",function(){window.location="/api/export?t="+T});
+el("expJsonBtn").addEventListener("click",function(){window.location="/api/export-json?t="+T});
 el("qShowBtn").addEventListener("click",loadQuarantine);
+
+function opLabel(op){var m={quarantine:"隔离",purge:"清空隔离","purge-permanent":"永久删除",restore:"还原",scan:"扫描"};return m[op]||op||"操作"}
+function fmtTs(ts){if(!ts)return"";return String(ts).replace("T"," ").substring(0,19)}
+function loadHistory(){api("/api/history?limit=100").then(function(d){if(!d.ok){el("hList").innerHTML='<div class="history-empty">加载失败：'+esc(d.error||"未知错误")+'</div>';return}
+if(!d.items||d.items.length===0){el("hList").innerHTML='<div class="history-empty">暂无操作记录</div>';return}
+var h="";for(var i=0;i<d.items.length;i++){var it=d.items[i];var opCls=esc(it.op||"");var failNote=(it.failed>0)?' <span style="color:var(--danger)">失败 '+it.failed+'</span>':"";
+h+='<div class="history-item"><span><span class="op-tag '+opCls+'">'+esc(opLabel(it.op))+'</span></span><span class="time">'+esc(fmtTs(it.ts))+'</span><span class="num">'+fmt(it.bytes||0)+'</span><span class="num">'+(it.files||0)+' 个文件'+failNote+'</span><span class="detail">'+esc(it.detail||"")+'</span></div>'}
+el("hList").innerHTML=h})}
+function toggleHistory(){var p=el("hPanel");if(p.style.display==="block"){p.style.display="none"}else{p.style.display="block";loadHistory()}}
+el("hShowBtn").addEventListener("click",toggleHistory);
+function refreshHistoryIfOpen(){var p=el("hPanel");if(p&&p.style.display==="block"){loadHistory()}}
 el("stopBtn").addEventListener("click",function(){if(confirm("关闭本地服务？"))api("/api/stop").then(function(){document.body.innerHTML="<div style='padding:60px;text-align:center;font-size:18px;color:var(--text-secondary)'>服务已停止，可以关闭此页面。</div>"})});
 
 api("/api/config").then(function(c){if(!c.ok)return;el("path").value=c.basePath||"";if(c.strategy)el("strategy").value=c.strategy;if(c.verify)el("verify").value=c.verify;if(c.headKB)el("headKB").value=String(c.headKB);if(c.detectLinks===false)el("links").checked=false;showProgress({phase:"idle",message:"空闲",elapsedSec:0,percent:0})});

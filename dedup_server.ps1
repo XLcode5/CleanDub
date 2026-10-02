@@ -669,6 +669,112 @@ while (-not $state.Stop) {
             continue
         }
 
+        if ($pathOnly -eq '/api/export-json') {
+            if ($state.Scan -eq $null) { Write-JsonResponse -Stream $stream -Object ([ordered]@{ ok = $false; error = '尚未扫描' }) -Code 400; continue }
+            $s = $state.Scan
+            $stamp = (Get-Date).ToString('yyyyMMdd_HHmmss')
+            $fileName = 'dedup-scan-' + $stamp + '.json'
+            # 汇总统计
+            $summary = [ordered]@{
+                exportedAt      = (Get-Date).ToString('s')
+                root            = [string]$s.root
+                strategy        = [string]$s.strategy
+                verify          = [string]$s.verify
+                scannedFiles    = [long]$s.scannedFiles
+                skippedDirs     = [long]$s.skippedDirs
+                totalGroups     = [int]$s.totalGroups
+                totalVictims    = [int]$s.totalVictims
+                sharedVictims   = [int]$s.sharedVictims
+                verifiedVictims = [int]$s.verifiedVictims
+                differVictims   = [int]$s.differVictims
+                hardlinkGroups  = [int]$s.hardlinkGroups
+                nominalBytes    = [long]$s.nominalBytes
+                realBytes       = [long]$s.realBytes
+                elapsedMs       = [long]$s.elapsedMs
+            }
+            # 组数据：keeper / victims / 路径 / 大小 / 时间 / 链接数
+            $groupList = New-Object System.Collections.ArrayList
+            $gid = 0
+            foreach ($g in @($s.groups)) {
+                $gid++
+                $victimList = New-Object System.Collections.ArrayList
+                foreach ($v in @($g.victims)) {
+                    [void]$victimList.Add([ordered]@{
+                        name   = [string]$v.name
+                        path   = [string]$v.path
+                        mtime  = [string]$v.mtime
+                        size   = [long]$v.size
+                        links  = [int]$v.links
+                        shared = [bool]$v.shared
+                    })
+                }
+                [void]$groupList.Add([ordered]@{
+                    groupId = $gid
+                    dir     = [string]$g.dir
+                    keeper  = [ordered]@{
+                        name  = [string]$g.keeper.name
+                        path  = [string]$g.keeper.path
+                        mtime = [string]$g.keeper.mtime
+                        size  = [long]$g.keeper.size
+                        links = [int]$g.keeper.links
+                    }
+                    victims = @($victimList)
+                    nominal = [long]$g.nominal
+                    real    = [long]$g.real
+                })
+            }
+            $payload = [ordered]@{ ok = $true; summary = $summary; groups = @($groupList) }
+            $jsonBytes = [System.Text.Encoding]::UTF8.GetBytes(($payload | ConvertTo-Json -Depth 12))
+            Write-HttpResponse -Stream $stream -Code 200 -ContentType 'application/json; charset=utf-8' -Body $jsonBytes -ExtraHeaders ('Content-Disposition: attachment; filename="' + $fileName + '"' + (Get-CRLF))
+            continue
+        }
+
+        # 操作历史：读取 <root>\_dedup_logs\ops.jsonl，按时间倒序返回
+        if ($pathOnly -eq '/api/history') {
+            $root = $state.ScanRoot
+            if (-not $root) { $root = [string]$config['defaultPath'] }
+            $limit = 50
+            if ($query['limit']) {
+                $tmpLimit = 0
+                if ([int]::TryParse([string]$query['limit'], [ref]$tmpLimit)) { $limit = $tmpLimit }
+            }
+            if ($limit -lt 1) { $limit = 1 }
+            if ($limit -gt 500) { $limit = 500 }
+            $items = @()
+            try { $items = @(Get-OpHistory2 -Root $root -Limit $limit) } catch { $items = @() }
+            $out = New-Object System.Collections.ArrayList
+            foreach ($o in $items) {
+                $opName = ''
+                try { $opName = [string]$o.op } catch { $opName = '' }
+                $ts = ''
+                try { $ts = [string]$o.ts } catch { $ts = '' }
+                $detail = ''
+                try { $detail = [string]$o.detail } catch { $detail = '' }
+                $fileCount = 0
+                try { if ($o.PSObject.Properties.Name -contains 'moved' -and $o.moved -ne $null) { $fileCount = [int]$o.moved } } catch { }
+                $bytes = [long]0
+                try { if ($o.PSObject.Properties.Name -contains 'bytes' -and $o.bytes -ne $null) { $bytes = [long]$o.bytes } } catch { }
+                $failed = 0
+                try { if ($o.PSObject.Properties.Name -contains 'failedCount' -and $o.failedCount -ne $null) { $failed = [int]$o.failedCount } } catch { }
+                $opId = ''
+                try { $opId = [string]$o.opId } catch { $opId = '' }
+                $recRoot = ''
+                try { $recRoot = [string]$o.root } catch { $recRoot = '' }
+                [void]$out.Add([ordered]@{
+                    op = $opName
+                    ts = $ts
+                    detail = $detail
+                    files = $fileCount
+                    bytes = $bytes
+                    failed = $failed
+                    opId = $opId
+                    root = $recRoot
+                })
+            }
+            Write-JsonResponse -Stream $stream -Object ([ordered]@{ ok = $true; root = $root; count = $out.Count; items = @($out) })
+            continue
+        }
+
         if ($pathOnly -eq '/api/stop-scan') {
             if ($state.Job -ne $null) {
                 try { Stop-Job -Job $state.Job -ErrorAction SilentlyContinue } catch { }
