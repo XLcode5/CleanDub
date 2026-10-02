@@ -6,13 +6,13 @@
   必须用 UTF-8 with BOM 保存。
 
   示例：
-    .\dedup.ps1 -Path F:\WeChat_old_3x -DryRun
-    .\dedup.ps1 -Path F:\WeChat_old_3x -DryRun -ExportCsv plan.csv
-    .\dedup.ps1 -Path F:\WeChat_old_3x -Verify Head -DryRun          # 只比头部（快，可能误判）
-    .\dedup.ps1 -Path F:\WeChat_old_3x -Action Quarantine -Yes
-    .\dedup.ps1 -Path F:\WeChat_old_3x -ListQuarantine
-    .\dedup.ps1 -Path F:\WeChat_old_3x -RestoreQuarantine
-    .\dedup.ps1 -Path F:\WeChat_old_3x -PurgeQuarantine -Yes
+    .\dedup.ps1 -Path "C:\Users\%USERNAME%\Documents\WeChat Files" -DryRun
+    .\dedup.ps1 -Path "C:\Users\%USERNAME%\Documents\WeChat Files" -DryRun -ExportCsv plan.csv
+    .\dedup.ps1 -Path "C:\Users\%USERNAME%\Documents\WeChat Files" -Verify Head -DryRun          # 只比头部（快，可能误判）
+    .\dedup.ps1 -Path "C:\Users\%USERNAME%\Documents\WeChat Files" -Action Quarantine -Yes
+    .\dedup.ps1 -Path "C:\Users\%USERNAME%\Documents\WeChat Files" -ListQuarantine
+    .\dedup.ps1 -Path "C:\Users\%USERNAME%\Documents\WeChat Files" -RestoreQuarantine
+    .\dedup.ps1 -Path "C:\Users\%USERNAME%\Documents\WeChat Files" -PurgeQuarantine -Yes
 #>
 [CmdletBinding()]
 param(

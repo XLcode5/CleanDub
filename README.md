@@ -11,7 +11,7 @@
 
 ## 为什么要改：v1 的判重依据在本机数据上命中率为 0
 
-在 `F:\WeChat_old_3x`（174,562 个文件）上实测：
+在 `%USERPROFILE%\Documents\WeChat Files`（174,562 个文件）上实测：
 
 | | v1（按文件名去 (N) 后缀 + 同目录） | v2（内容哈希，跨目录） |
 |---|---|---|
@@ -84,21 +84,21 @@ Cleanest 策略的实际效果（同一组 5 个副本）：
 
 ```powershell
 # 只预览（不动任何文件）
-.\dedup.ps1 -Path F:\WeChat_old_3x -DryRun
+.\dedup.ps1 -Path "%USERPROFILE%\Documents\WeChat Files" -DryRun
 
 # 预览 + 导出计划 CSV
-.\dedup.ps1 -Path F:\WeChat_old_3x -DryRun -ExportCsv plan.csv
+.\dedup.ps1 -Path "%USERPROFILE%\Documents\WeChat Files" -DryRun -ExportCsv plan.csv
 
 # 保留"名字最干净"的（默认），改成保留最新的
-.\dedup.ps1 -Path F:\WeChat_old_3x -DryRun -Strategy Newest
+.\dedup.ps1 -Path "%USERPROFILE%\Documents\WeChat Files" -DryRun -Strategy Newest
 
 # 真正执行：移入隔离区（可还原）
-.\dedup.ps1 -Path F:\WeChat_old_3x -Action Quarantine -Yes
+.\dedup.ps1 -Path "%USERPROFILE%\Documents\WeChat Files" -Action Quarantine -Yes
 
 # 隔离区管理
-.\dedup.ps1 -Path F:\WeChat_old_3x -ListQuarantine
-.\dedup.ps1 -Path F:\WeChat_old_3x -RestoreQuarantine
-.\dedup.ps1 -Path F:\WeChat_old_3x -PurgeQuarantine -Yes
+.\dedup.ps1 -Path "%USERPROFILE%\Documents\WeChat Files" -ListQuarantine
+.\dedup.ps1 -Path "%USERPROFILE%\Documents\WeChat Files" -RestoreQuarantine
+.\dedup.ps1 -Path "%USERPROFILE%\Documents\WeChat Files" -PurgeQuarantine -Yes
 ```
 
 ## 已知边界与风险（务必先读）
@@ -170,8 +170,8 @@ ops.jsonl 每行一条 JSON，现有事件类型：
 
 ### 查看历史
 
-    .\dedup.ps1 -Path F:\WeChat_old_3x -ListOps          # 最近 40 条操作
-    Get-Content F:\WeChat_old_3x\_dedup_logs\ops.jsonl   # 原始总账
+    .\dedup.ps1 -Path "%USERPROFILE%\Documents\WeChat Files" -ListOps          # 最近 40 条操作
+    Get-Content "%USERPROFILE%\Documents\WeChat Files\_dedup_logs\ops.jsonl"   # 原始总账
 
 ### 实测验证（隔离区 + 日志 + 还原完整闭环）
 
@@ -185,7 +185,7 @@ ops.jsonl 每行一条 JSON，现有事件类型：
 - 7 个原始文件全部回到原位，独有文件从未被触碰
 
 > 本轮在你真实数据上跑的第一次扫描**还没来得及写日志**（日志功能是后加的），
-> 因此 F:\WeChat_old_3x\_dedup_logs\ 现在是空的，WeChat 数据目录也**没有写入任何文件**。
+> 因此 `%USERPROFILE%\Documents\WeChat Files\_dedup_logs\` 现在是空的，WeChat 数据目录也**没有写入任何文件**。
 > 加上之后再做任何一次扫描/清理，都会自动落盘，包含「清理前 -> 隔离 -> 还原/清空」的完整链条。
 
 ## 网页版（dedup_server.ps1 + dedup_ui.html）
@@ -201,7 +201,7 @@ v2 网页版是新增的一组文件，原来那套一个字节都没改：
 
 ### 启动
 
-    cd 'F:\WeChat_old_3x\clear app'
+    cd "%~dp0"
     powershell -NoProfile -ExecutionPolicy Bypass -File .\dedup_server.ps1
 
 会自动挑 8717-8730 里空闲的端口并打开浏览器。可选参数：

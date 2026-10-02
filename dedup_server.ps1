@@ -33,8 +33,19 @@ $script:PageSize = 50
 function Write-Log2 { param([string]$Message) Write-Host ((Get-Date).ToString('HH:mm:ss') + '  ' + $Message) }
 
 # ---------------- 配置 ----------------
+# 自动检测微信默认文件目录
+function Get-WeChatDefaultPath {
+    # 微信 3.x 默认路径
+    $p1 = Join-Path $env:USERPROFILE 'Documents\WeChat Files'
+    # 微信 4.x 默认路径
+    $p2 = Join-Path $env:USERPROFILE 'Documents\xwechat_files'
+    if (Test-Path -LiteralPath $p1) { return $p1 }
+    if (Test-Path -LiteralPath $p2) { return $p2 }
+    return ''
+}
+
 $config = [ordered]@{
-    defaultPath = ''
+    defaultPath = (Get-WeChatDefaultPath)
     port        = 0
     openBrowser = $true
     strategy    = 'Cleanest'
