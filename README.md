@@ -1,4 +1,4 @@
-﻿# dedup v2 —— 内容级重复文件清理（改造说明）
+﻿# Cleandup —— 内容级重复文件清理工具
 
 本目录原有 4 个文件（`dedup_core.ps1` / `dedup_server.ps1` / `dedup_ui.html` / `dedup_wechat.ps1`）
 **未做任何改动**，全部保留。v2 是新增的两个文件：

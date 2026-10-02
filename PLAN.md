@@ -1,7 +1,7 @@
-# clear app 项目完善规划
+# Cleandup 项目完善规划
 
 ## 项目现状
-- **位置**: `D:\OpenClaw\clear app`
+- **位置**: `D:\OpenClaw\cleandup`
 - **技术栈**: PowerShell (引擎+服务) + HTML/JS (界面) + Batch (启动器)
 - **版本**: v1 + v2 并存（v2 为核心，v1 保留备份）
 - **状态**: 未初始化 Git，未上传 GitHub
@@ -114,7 +114,7 @@
 ## 阶段五：GitHub 开源（D5）
 
 ### D5.1 仓库创建
-- [ ] 仓库名：建议 `clear-app` 或 `dedup-tool`
+- [ ] 仓库名：`cleandup`
 - [ ] 描述：Windows 重复文件清理工具，内容级判重，安全隔离区
 - [ ] Public 仓库
 - [ ] 添加 Topics：`duplicate-files`, `dedup`, `powershell`, `windows`, `file-cleanup`

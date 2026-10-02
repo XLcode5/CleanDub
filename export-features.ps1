@@ -1,4 +1,4 @@
-# ClearApp 功能管理工具
+# Cleandup 功能管理工具
 # 自动生成版本功能清单（HTML + CSV）
 
 param(
@@ -93,7 +93,7 @@ $html = @"
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ClearApp 功能清单 - $Version</title>
+<title>Cleandup 功能清单 - $Version</title>
 <style>
 :root{--bg:#0f172a;--bg-card:#1e293b;--bg-hover:#334155;--border:#334155;--text:#f1f5f9;--text-secondary:#94a3b8;--accent:#3b82f6;--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--purple:#8b5cf6}
 [data-theme="light"]{--bg:#f1f5f9;--bg-card:#fff;--bg-hover:#e2e8f0;--border:#cbd5e1;--text:#1e293b;--text-secondary:#64748b;--accent:#2563eb}
@@ -155,7 +155,7 @@ h1{font-size:28px;display:flex;align-items:center;gap:12px}
 <button class="theme-toggle" onclick="document.documentElement.setAttribute('data-theme', document.documentElement.getAttribute('data-theme')==='light'?'':'light')">切换主题</button>
 <div class="container">
   <div class="header">
-    <h1>🧹 ClearApp 功能清单 <span class="version-tag">$Version</span></h1>
+    <h1>🧹 Cleandup 功能清单 <span class="version-tag">$Version</span></h1>
     <div class="meta">生成时间: $timestamp | 共 $total 项功能</div>
   </div>
   
