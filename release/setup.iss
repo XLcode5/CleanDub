@@ -30,7 +30,6 @@ PrivilegesRequiredOverridesAllowed=dialog
 
 ; 界面语言
 [Languages]
-Name: "chinesesimp"; MessagesFile: "compiler:Languages\ChineseSimp.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 ; 安装类型
@@ -45,12 +44,12 @@ Name: "desktopicon"; Description: "创建桌面快捷方式"; Types: full
 
 ; 文件
 [Files]
-Source: "CleanDub.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "dedup_core.ps1"; DestDir: "{app}"; Flags: ignoreversion
-Source: "dedup_server.ps1"; DestDir: "{app}"; Flags: ignoreversion
-Source: "dedup_ui.html"; DestDir: "{app}"; Flags: ignoreversion
-Source: "version.json"; DestDir: "{app}"; Flags: ignoreversion
-Source: "config.json"; DestDir: "{app}"; Flags: ignoreversion
+Source: "CleanDub\CleanDub.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "CleanDub\dedup_core.ps1"; DestDir: "{app}"; Flags: ignoreversion
+Source: "CleanDub\dedup_server.ps1"; DestDir: "{app}"; Flags: ignoreversion
+Source: "CleanDub\dedup_ui.html"; DestDir: "{app}"; Flags: ignoreversion
+Source: "CleanDub\version.json"; DestDir: "{app}"; Flags: ignoreversion
+Source: "CleanDub\config.json"; DestDir: "{app}"; Flags: ignoreversion
 
 ; 快捷方式
 [Icons]
