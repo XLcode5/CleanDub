@@ -11,13 +11,23 @@ $ErrorActionPreference = 'Stop'
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
 
 # 获取脚本真实目录（exe 打包后 $PSScriptRoot 会变化）
-$script:AppDir = $PSScriptRoot
-if (-not $script:AppDir) { try { $script:AppDir = Split-Path -Parent $PSCommandPath } catch { } }
-if (-not $script:AppDir) { try { $script:AppDir = Split-Path -Parent $MyInvocation.MyCommand.Path } catch { } }
-if (-not $script:AppDir) { $script:AppDir = (Get-Location).ProviderPath }
+# 优先使用当前工作目录，因为用户通常从包含所有文件的目录运行 exe
+$script:AppDir = (Get-Location).ProviderPath
+$serverScript = Join-Path $script:AppDir 'dedup_server.ps1'
 
-# 如果是 exe 运行，AppDir 是 exe 所在目录
-# 需要确保 dedup_server.ps1 等文件也在同目录
+# 如果当前目录没有，尝试 exe 所在目录
+if (-not (Test-Path -LiteralPath $serverScript)) {
+    $exeDir = $PSScriptRoot
+    if (-not $exeDir) { try { $exeDir = Split-Path -Parent $PSCommandPath } catch { } }
+    if (-not $exeDir) { try { $exeDir = Split-Path -Parent $MyInvocation.MyCommand.Path } catch { } }
+    if ($exeDir) {
+        $testPath = Join-Path $exeDir 'dedup_server.ps1'
+        if (Test-Path -LiteralPath $testPath) {
+            $script:AppDir = $exeDir
+            $serverScript = $testPath
+        }
+    }
+}
 
 # 显示启动信息
 Write-Host ''
@@ -58,10 +68,10 @@ $serverArgs = @{
 }
 
 # 启动服务器
-$serverScript = Join-Path $script:AppDir 'dedup_server.ps1'
 if (-not (Test-Path -LiteralPath $serverScript)) {
     Write-Host '错误: 找不到 dedup_server.ps1' -ForegroundColor Red
-    Write-Host '请确保所有文件在同一目录' -ForegroundColor Yellow
+    Write-Host ('当前目录: ' + $script:AppDir) -ForegroundColor Yellow
+    Write-Host '请确保从包含所有文件的目录运行' -ForegroundColor Yellow
     pause
     exit 1
 }
