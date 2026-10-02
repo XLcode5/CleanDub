@@ -1,0 +1,7 @@
+{
+  "version": "0.3.0",
+  "buildDate": "2026-10-02",
+  "channel": "stable",
+  "githubRepo": "XLcode5/CleanDub",
+  "updateCheckUrl": "https://api.github.com/repos/XLcode5/CleanDub/releases/latest"
+}

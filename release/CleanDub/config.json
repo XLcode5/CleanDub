@@ -1,0 +1,9 @@
+{
+  "defaultPath": "",
+  "port": 0,
+  "openBrowser": true,
+  "strategy": "Cleanest",
+  "verify": "Full",
+  "detectLinks": true,
+  "excludeDirs": []
+}
