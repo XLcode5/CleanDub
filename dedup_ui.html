@@ -1,142 +1,277 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>重复文件清理 v2（内容级判重）</title>
+<title>ClearApp — 重复文件清理</title>
 <style>
-  *{box-sizing:border-box}
-  body{font-family:"Microsoft YaHei","Segoe UI",system-ui,sans-serif;margin:0;padding:18px 18px 90px;background:#f5f6f8;color:#1f2329}
-  h1{margin:0 0 4px;font-size:20px}
-  .hint{margin:0 0 14px;color:#6b7280;font-size:13px;line-height:1.6}
-  .panel{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px;margin-bottom:14px}
-  .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
-  .controls label{font-size:14px;display:inline-flex;align-items:center;gap:6px}
-  input[type=text]{padding:6px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:14px}
-  #path{min-width:420px}
-  select{padding:6px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:14px}
-  button{padding:7px 14px;border:1px solid transparent;border-radius:6px;background:#2563eb;color:#fff;font-size:14px;cursor:pointer}
-  button:disabled{background:#9ca3af;cursor:not-allowed}
-  button.secondary{background:#6b7280}
-  button.danger{background:#dc2626}
-  button.ghost{background:#fff;color:#374151;border-color:#d1d5db}
-  #status{color:#6b7280;font-size:13px}
-  #progWrap{display:none;margin-top:10px}
-  #progBar{height:10px;background:#e5e7eb;border-radius:6px;overflow:hidden}
-  #progFill{height:100%;width:0%;background:#2563eb;transition:width .3s}
-  #progText{font-size:12px;color:#6b7280;margin-top:5px}
-  .cards{display:flex;flex-wrap:wrap;gap:10px}
-  .card{flex:1 1 150px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px}
-  .card .k{font-size:12px;color:#6b7280}
-  .card .v{font-size:19px;font-weight:600;margin-top:2px}
-  .card .s{font-size:11px;color:#9ca3af;margin-top:3px;line-height:1.4}
-  .card.warn .v{color:#b45309}
-  .card.ok .v{color:#059669}
-  .group{background:#fff;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:10px;overflow:hidden}
-  .ghead{background:#f3f4f6;padding:7px 12px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;word-break:break-all}
-  .row{display:grid;grid-template-columns:28px 1fr 128px 100px;gap:8px;padding:6px 12px;align-items:center;font-size:13px;border-bottom:1px solid #f3f4f6}
-  .row:last-child{border-bottom:none}
-  .row .name{word-break:break-all}
-  .row.keeper{background:#ecfdf5}
-  .row.keeper .name:before{content:"保留  ";color:#059669;font-weight:600}
-  .row.victim .name:before{content:"删除  ";color:#d97706}
-  .row .mt{color:#6b7280}
-  .row .sz{color:#6b7280;text-align:right;font-variant-numeric:tabular-nums}
-  .badge{display:inline-block;font-size:11px;padding:1px 6px;border-radius:10px;background:#e5e7eb;color:#374151;margin-left:4px}
-  .badge.ok{background:#d1fae5;color:#065f46}
-  .badge.warn{background:#fef3c7;color:#92400e}
-  .pager{display:flex;gap:8px;align-items:center;font-size:13px;color:#374151}
-  .actions{position:fixed;left:0;right:0;bottom:0;background:#ffffffee;border-top:1px solid #e5e7eb;padding:10px 18px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  .err{color:#dc2626}.ok{color:#059669}
-  .sess{display:flex;gap:10px;align-items:center;border-bottom:1px solid #f3f4f6;padding:7px 0;font-size:13px}
-  .sess:last-child{border-bottom:none}
-  .sess .p{flex:1;word-break:break-all;color:#374151}
+:root {
+  --bg: #0f172a;
+  --bg-card: #1e293b;
+  --bg-hover: #334155;
+  --border: #334155;
+  --text: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --radius: 12px;
+  --shadow: 0 4px 6px -1px rgba(0,0,0,.3), 0 2px 4px -2px rgba(0,0,0,.3);
+}
+[data-theme="light"] {
+  --bg: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-hover: #e2e8f0;
+  --border: #cbd5e1;
+  --text: #1e293b;
+  --text-secondary: #64748b;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --shadow: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -2px rgba(0,0,0,.1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s}
+.app{max-width:1200px;margin:0 auto;padding:24px 20px 100px}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.header h1{font-size:24px;font-weight:700;display:flex;align-items:center;gap:10px}
+.header h1 svg{width:28px;height:28px}
+.theme-btn{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);cursor:pointer;font-size:14px;display:flex;align-items:center;gap:6px;transition:all .2s}
+.theme-btn:hover{background:var(--bg-hover)}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;box-shadow:var(--shadow)}
+.card-title{font-size:14px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;align-items:end}
+.control-group{display:flex;flex-direction:column;gap:6px}
+.control-group label{font-size:13px;color:var(--text-secondary);font-weight:500}
+.control-group input[type=text],.control-group select{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:14px;transition:border-color .2s}
+.control-group input[type=text]:focus,.control-group select:focus{outline:none;border-color:var(--accent)}
+.control-group input[type=text]::placeholder{color:var(--text-secondary)}
+.checkbox-group{display:flex;align-items:center;gap:8px;padding:10px 0}
+.checkbox-group input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 20px;border-radius:8px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-hover)}
+.btn-primary:disabled{background:var(--text-secondary);cursor:not-allowed}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-danger:hover{background:#dc2626}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-ghost:hover{background:var(--bg-hover)}
+.btn-success{background:var(--success);color:#fff}
+.btn-success:hover{background:#059669}
+.progress-wrap{display:none;margin-top:16px}
+.progress-bar{height:8px;background:var(--bg-hover);border-radius:4px;overflow:hidden}
+.progress-fill{height:100%;width:0%;background:var(--accent);border-radius:4px;transition:width .3s ease}
+.progress-text{font-size:13px;color:var(--text-secondary);margin-top:8px;display:flex;justify-content:space-between}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:16px}
+.stat-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center}
+.stat-card .value{font-size:24px;font-weight:700;margin:4px 0}
+.stat-card .label{font-size:12px;color:var(--text-secondary)}
+.stat-card .sub{font-size:11px;color:var(--text-secondary);margin-top:4px}
+.stat-card.highlight .value{color:var(--success)}
+.stat-card.warning .value{color:var(--warning)}
+.filter-bar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:16px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:16px}
+.filter-bar input[type=text]{flex:1;min-width:200px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:14px}
+.filter-bar select{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:14px}
+.group-list{display:flex;flex-direction:column;gap:12px}
+.group-item{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.group-header{background:var(--bg-hover);padding:12px 16px;font-size:13px;color:var(--text-secondary);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.group-header .dir{font-weight:500}
+.group-header .badge{background:var(--accent);color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600}
+.file-row{display:grid;grid-template-columns:32px 1fr 140px 100px;gap:12px;padding:10px 16px;align-items:center;font-size:13px;border-bottom:1px solid var(--border);transition:background .2s}
+.file-row:last-child{border-bottom:none}
+.file-row:hover{background:var(--bg-hover)}
+.file-row.keeper{background:rgba(16,185,129,.1)}
+.file-row.keeper:hover{background:rgba(16,185,129,.15)}
+.file-row .name{word-break:break-all;display:flex;align-items:center;gap:8px}
+.file-row .name .tag{font-size:11px;padding:2px 6px;border-radius:4px;font-weight:600}
+.file-row.keeper .name .tag{background:var(--success);color:#fff}
+.file-row.victim .name .tag{background:var(--warning);color:#000}
+.file-row .mtime{color:var(--text-secondary)}
+.file-row .size{text-align:right;font-variant-numeric:tabular-nums;color:var(--text-secondary)}
+.file-row input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent)}
+.pagination{display:flex;justify-content:center;align-items:center;gap:12px;padding:16px;font-size:14px;color:var(--text-secondary)}
+.pagination button{background:var(--bg-card);border:1px solid var(--border);color:var(--text);padding:6px 14px;border-radius:6px;cursor:pointer;transition:all .2s}
+.pagination button:hover:not(:disabled){background:var(--bg-hover)}
+.pagination button:disabled{opacity:.5;cursor:not-allowed}
+.action-bar{position:fixed;bottom:0;left:0;right:0;background:var(--bg-card);border-top:1px solid var(--border);padding:16px 20px;display:flex;gap:12px;align-items:center;box-shadow:0 -4px 6px -1px rgba(0,0,0,.1)}
+.action-bar .spacer{flex:1}
+.action-bar .info{font-size:14px;color:var(--text-secondary)}
+.quarantine-panel{display:none;margin-top:16px}
+.quarantine-item{display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;font-size:13px}
+.quarantine-item .path{flex:1;word-break:break-all;color:var(--text-secondary)}
+.quarantine-item .actions{display:flex;gap:8px}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text-secondary)}
+.empty-state svg{width:64px;height:64px;margin-bottom:16px;opacity:.5}
+.empty-state p{font-size:16px;margin-bottom:8px}
+.empty-state .sub{font-size:14px}
+@media (max-width:768px){
+  .controls{grid-template-columns:1fr}
+  .file-row{grid-template-columns:32px 1fr 80px;gap:8px}
+  .file-row .mtime{display:none}
+  .action-bar{flex-wrap:wrap}
+}
 </style>
 </head>
 <body>
-<h1>重复文件清理 v2（内容级判重）</h1>
-<p class="hint">
-  仅监听 127.0.0.1，不联网，带随机令牌保护。<b>判重依据是文件内容（SHA-256），不再看文件名</b>：
-  跨月份目录、改名副本、叠加的 (1)(1)(2) 后缀、以及微信给出完全不同名字的副本，都能命中。<br>
-  <b>默认动作是「移入隔离区」</b>——文件移到 &lt;扫描目录&gt;\_dedup_quarantine\，可一键还原；每次操作会写入 &lt;扫描目录&gt;\_dedup_logs\ 的 append-only 日志。<br>
-  删除微信接收目录里的文件后，<b>聊天记录里指向该副本的消息可能无法直接打开文件</b>，请先核对再操作。
-</p>
+<div class="app">
+  <div class="header">
+    <h1>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+      ClearApp
+    </h1>
+    <button class="theme-btn" onclick="toggleTheme()">
+      <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      深色模式
+    </button>
+  </div>
 
-<div class="panel controls">
-  <label>扫描目录 <input id="path" type="text"></label>
-  <label><input type="checkbox" id="recurse" checked> 递归子目录</label>
-  <label>保留策略
-    <select id="strategy">
-      <option value="Cleanest">名字最干净（(N) 最少）</option>
-      <option value="Newest">修改时间最新</option>
-      <option value="Original">无后缀原件优先</option>
-      <option value="Highest">(N) 数字最大</option>
+  <div class="card">
+    <div class="card-title">扫描设置</div>
+    <div class="controls">
+      <div class="control-group" style="grid-column:1/-1">
+        <label>扫描目录（支持多个，用分号分隔）</label>
+        <input type="text" id="path" placeholder="D:\Downloads; E:\Photos">
+      </div>
+      <div class="control-group">
+        <label>保留策略</label>
+        <select id="strategy">
+          <option value="Cleanest">名字最干净（(N) 最少）</option>
+          <option value="Newest">修改时间最新</option>
+          <option value="Original">无后缀原件优先</option>
+          <option value="Highest">(N) 数字最大</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label>校验级别</label>
+        <select id="verify">
+          <option value="Full">全量哈希（准确）</option>
+          <option value="Head">只比头部（最快）</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label>头部大小</label>
+        <select id="headKB">
+          <option value="16">16 KB</option>
+          <option value="32" selected>32 KB</option>
+          <option value="64">64 KB</option>
+          <option value="128">128 KB</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label>最小文件大小</label>
+        <select id="minFileSize">
+          <option value="1">不限</option>
+          <option value="1024">≥ 1 KB</option>
+          <option value="10240">≥ 10 KB</option>
+          <option value="102400">≥ 100 KB</option>
+          <option value="1048576">≥ 1 MB</option>
+        </select>
+      </div>
+      <div class="checkbox-group">
+        <input type="checkbox" id="recurse" checked>
+        <label for="recurse" style="margin:0">递归子目录</label>
+      </div>
+      <div class="checkbox-group">
+        <input type="checkbox" id="links" checked>
+        <label for="links" style="margin:0">检测硬链接</label>
+      </div>
+      <div class="control-group">
+        <button class="btn btn-primary" id="scanBtn" style="width:100%">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          开始扫描
+        </button>
+      </div>
+    </div>
+    <div class="progress-wrap" id="progWrap">
+      <div class="progress-bar"><div class="progress-fill" id="progFill"></div></div>
+      <div class="progress-text">
+        <span id="progPhase">等待中…</span>
+        <span id="progTime">0 秒</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="summary"></div>
+
+  <div class="filter-bar">
+    <input type="text" id="filter" placeholder="搜索目录或文件名…">
+    <select id="minGroupSize">
+      <option value="0">不限大小</option>
+      <option value="1024">≥ 1 MB</option>
+      <option value="10240">≥ 10 MB</option>
+      <option value="51200">≥ 50 MB</option>
+      <option value="102400">≥ 100 MB</option>
     </select>
-  </label>
-  <label>校验级别
-    <select id="verify">
-      <option value="Full">全量哈希（准确，较慢）</option>
-      <option value="Head">只比头部（最快，可能误判）</option>
-    </select>
-  </label>
-  <label title="预先比对的片段大小：只读取每个文件最前面的 N KB 做快速指纹，指纹不同的直接排除，不必读整个文件。值越小扫描越快、但进入全量哈希的文件越多；值越大反而越省全量读取。">头部 <select id="headKB"><option value="16">16 KB</option><option value="32" selected>32 KB</option><option value="64">64 KB</option><option value="128">128 KB</option></select></label>
-  <span id="headHint" style="font-size:12px;color:#6b7280"></span>
-  <label><input type="checkbox" id="links" checked> 检测硬链接</label>
-  <button id="scanBtn">扫描</button>
-  <span id="status"></span>
-</div>
+    <button class="btn btn-ghost" id="filterBtn">筛选</button>
+    <button class="btn btn-ghost" id="clearFilterBtn">清除</button>
+  </div>
 
-<div class="panel" id="progWrap">
-  <div id="progBar"><div id="progFill"></div></div>
-  <div id="progText">等待中…</div>
-</div>
+  <div id="groups" class="group-list">
+    <div class="empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      <p>尚未开始扫描</p>
+      <div class="sub">设置扫描目录后点击「开始扫描」</div>
+    </div>
+  </div>
 
-<div id="summary"></div>
+  <div class="pagination" id="pagination" style="display:none">
+    <button id="prevBtn">上一页</button>
+    <span id="pageInfo">-</span>
+    <button id="nextBtn">下一页</button>
+  </div>
 
-<div class="panel" id="listPanel">
-  <div class="controls">
-    <label>关键字 <input id="filter" type="text" placeholder="目录或文件名包含…" style="min-width:240px"></label>
-    <button id="filterBtn" class="ghost">筛选</button>
-    <button id="clearFilterBtn" class="ghost">清除</button>
-    <label>最小组可释放 <select id="minSize"><option value="0">不限</option><option value="1024">≥ 1 MB</option><option value="10240">≥ 10 MB</option><option value="51200">≥ 50 MB</option><option value="102400">≥ 100 MB</option><option value="512000">≥ 500 MB</option></select></label>
-    <button id="sizeBtn" class="ghost">应用大小</button>
-    <span class="pager">
-      <button id="prevBtn" class="ghost">上一页</button>
-      <span id="pageInfo">-</span>
-      <button id="nextBtn" class="ghost">下一页</button>
-    </span>
+  <div class="card quarantine-panel" id="qPanel">
+    <div class="card-title">隔离区管理</div>
+    <div id="qList"></div>
+  </div>
+
+  <div class="action-bar">
+    <button class="btn btn-success" id="qBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M5 8l6 6 6-6"/></svg>
+      移入隔离区
+    </button>
+    <button class="btn btn-danger" id="delBtn">永久删除</button>
+    <div class="spacer"></div>
+    <span class="info" id="selInfo">已勾选 0 个文件</span>
+    <button class="btn btn-ghost" id="allBtn">全选</button>
+    <button class="btn btn-ghost" id="noneBtn">全不选</button>
+    <button class="btn btn-ghost" id="expBtn">导出 CSV</button>
+    <button class="btn btn-ghost" id="qShowBtn">隔离区</button>
+    <button class="btn btn-ghost" id="stopBtn">关闭服务</button>
   </div>
 </div>
 
-<div id="groups"></div>
-
-<div class="panel" id="qPanel" style="display:none">
-  <div style="font-size:14px;font-weight:600;margin-bottom:6px">隔离区（可还原）</div>
-  <div id="qList" style="font-size:13px;color:#6b7280">暂无</div>
-</div>
-
-<div class="actions">
-  <button id="qBtn">移入隔离区</button>
-  <button id="delBtn" class="danger">永久删除</button>
-  <span style="width:14px"></span>
-  <button id="allBtn" class="ghost">全选</button>
-  <button id="noneBtn" class="ghost">全不选</button>
-  <span style="width:14px"></span>
-  <button id="expBtn" class="ghost">导出清单 CSV</button>
-  <button id="qShowBtn" class="ghost">隔离区管理</button>
-  <button id="stopBtn" class="secondary">关闭服务</button>
-  <span id="selInfo" style="font-size:13px;color:#374151"></span>
-</div>
-
 <script>
+// 主题切换
+function toggleTheme(){
+  var html = document.documentElement;
+  var icon = document.getElementById('themeIcon');
+  var btn = document.querySelector('.theme-btn');
+  if(html.getAttribute('data-theme') === 'light'){
+    html.removeAttribute('data-theme');
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg> 深色模式';
+    localStorage.setItem('clearapp-theme','dark');
+  } else {
+    html.setAttribute('data-theme','light');
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg> 浅色模式';
+    localStorage.setItem('clearapp-theme','light');
+  }
+}
+// 初始化主题
+(function(){
+  var saved = localStorage.getItem('clearapp-theme');
+  if(saved === 'light'){ document.documentElement.setAttribute('data-theme','light'); }
+})();
+
+// 以下保持原有 JS 逻辑，适配新 UI 的 ID
 var T = "__TOKEN__";
 var st = { offset: 0, limit: 50, total: 0, filter: "", minKB: 0, groups: [], summary: null, selectedNow: 0, selectedBytes: 0, polling: null };
 
 function el(id){ return document.getElementById(id); }
-function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]; }); }
+function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
 function fmt(b){ b = Number(b) || 0; if (b >= 1073741824) return (b/1073741824).toFixed(2)+" GB"; if (b >= 1048576) return (b/1048576).toFixed(2)+" MB"; if (b >= 1024) return (b/1024).toFixed(1)+" KB"; return b+" B"; }
 function arr(x){ if (x == null) return []; return Array.isArray(x) ? x : [x]; }
-function status(html, isHtml){ if (isHtml) { el("status").innerHTML = html; } else { el("status").textContent = html; } }
 
 function api(path, method, body){
   var url = path + (path.indexOf("?") >= 0 ? "&" : "?") + "t=" + T;
@@ -147,57 +282,52 @@ function api(path, method, body){
 
 function renderSummary(){
   var s = st.summary; if (!s) return;
-  var selNote = s.linkDetectOk ? "" : "（本机硬链接检测不可用，按独立文件估算）";
-  var h = '<div class="cards">';
-  h += card("重复组", s.totalGroups, "共扫描 " + s.scannedFiles + " 个文件，跳过 " + s.skippedDirs + " 个无权限目录");
-  h += card("待清理文件", s.totalVictims, "已校验 " + (s.verifiedVictims||0) + " · 不一致 " + (s.differVictims||0));
-  h += '<div class="card ok"><div class="k">预计释放（当前勾选）</div><div class="v" id="selBytesV">' + fmt(st.selectedBytes || 0) + '</div><div class="s">已勾选 ' + st.selectedNow + ' 个文件；取消勾选会实时减少</div></div>';
-  h += card("表面可释放", fmt(s.nominalBytes), "全部待删项的字节总和");
-  h += '<div class="card ' + (s.sharedVictims ? "warn" : "ok") + '"><div class="k">真实可释放</div><div class="v">' + fmt(s.realBytes) + '</div><div class="s">' +
-       (s.sharedVictims ? ("有 " + s.sharedVictims + " 个是硬链接，删掉它们不会释放空间") : "全部是独立文件") + selNote + '</div></div>';
-  h += card("扫描耗时", (s.elapsedMs/1000).toFixed(1) + " 秒", "策略 " + s.strategy + " · 校验 " + s.verify);
-  h += '<div class="card"><div class="k">判重流水线</div><div class="v" style="font-size:14px">大小 → prehash → 全量</div><div class="s">候选 ' + (s.candidates||0) + ' · prehash 幸存 ' + (s.preSurvivors||0) + ' · 全量读 ' + (s.fullHashed||0) + '</div></div>';
+  var h = '<div class="stats-grid">';
+  h += '<div class="stat-card"><div class="label">重复组</div><div class="value">' + s.totalGroups + '</div><div class="sub">扫描 ' + s.scannedFiles + ' 个文件</div></div>';
+  h += '<div class="stat-card"><div class="label">待清理文件</div><div class="value">' + s.totalVictims + '</div><div class="sub">已校验 ' + (s.verifiedVictims||0) + ' · 不一致 ' + (s.differVictims||0) + '</div></div>';
+  h += '<div class="stat-card highlight"><div class="label">预计释放（勾选）</div><div class="value" id="selBytesV">' + fmt(st.selectedBytes || 0) + '</div><div class="sub">已勾选 ' + st.selectedNow + ' 个文件</div></div>';
+  h += '<div class="stat-card"><div class="label">表面可释放</div><div class="value">' + fmt(s.nominalBytes) + '</div><div class="sub">全部待删项总和</div></div>';
+  h += '<div class="stat-card ' + (s.sharedVictims ? 'warning' : 'highlight') + '"><div class="label">真实可释放</div><div class="value">' + fmt(s.realBytes) + '</div><div class="sub">' + (s.sharedVictims ? (s.sharedVictims + ' 个硬链接不释放空间') : '全部是独立文件') + '</div></div>';
+  h += '<div class="stat-card"><div class="label">扫描耗时</div><div class="value">' + (s.elapsedMs/1000).toFixed(1) + 's</div><div class="sub">' + s.strategy + ' · ' + s.verify + '</div></div>';
   h += "</div>";
   el("summary").innerHTML = h;
-  updateSel();
 }
-function card(k, v, s){ return '<div class="card"><div class="k">' + esc(k) + '</div><div class="v">' + esc(v) + '</div><div class="s">' + esc(s) + '</div></div>'; }
-function updateSel(){ el("selInfo").textContent = "已勾选 " + st.selectedNow + " 个文件"; var sv = el("selBytesV"); if (sv) sv.textContent = fmt(st.selectedBytes || 0); }
 
 function rowHtml(f, isKeeper){
-  var linkBadge = (f.links > 1) ? '<span class="badge warn" title="硬链接：还有其它名字指向同一份数据，删除本名不释放空间">硬链接 ' + f.links + '</span>' : "";
+  var linkBadge = (f.links > 1) ? '<span style="font-size:11px;padding:2px 6px;border-radius:4px;background:var(--warning);color:#000;margin-left:6px">硬链接 ' + f.links + '</span>' : "";
   if (isKeeper) {
-    return '<div class="row keeper"><span></span><span class="name">' + esc(f.name) + '</span><span class="mt">' + esc(f.mtime) + '</span><span class="sz">' + fmt(f.size) + '</span></div>';
+    return '<div class="file-row keeper"><span></span><span class="name"><span class="tag">保留</span>' + esc(f.name) + '</span><span class="mtime">' + esc(f.mtime) + '</span><span class="size">' + fmt(f.size) + '</span></div>';
   }
-  return '<div class="row victim">' +
-    '<span><input type="checkbox" class="pick" data-path="' + esc(f.path) + '"' + (f.selected ? " checked" : "") + '></span>' +
-    '<span class="name">' + esc(f.name) + ' <span class="badge ok">内容一致</span>' + linkBadge + '</span>' +
-    '<span class="mt">' + esc(f.mtime) + '</span><span class="sz">' + fmt(f.size) + '</span></div>';
+  return '<div class="file-row victim"><span><input type="checkbox" class="pick" data-path="' + esc(f.path) + '"' + (f.selected ? " checked" : "") + '></span><span class="name"><span class="tag">删除</span>' + esc(f.name) + linkBadge + '</span><span class="mtime">' + esc(f.mtime) + '</span><span class="size">' + fmt(f.size) + '</span></div>';
 }
 
 function renderPage(groups){
   st.groups = arr(groups);
   var box = el("groups");
-  if (st.groups.length === 0) { box.innerHTML = '<p class="hint">本页没有内容。</p>'; }
-  else {
-    var h = "";
-    for (var i = 0; i < st.groups.length; i++) {
-      var g = st.groups[i];
-      h += '<div class="group"><div class="ghead">[' + (st.offset + i + 1) + '] ' + esc(g.dir) + '</div>';
-      h += rowHtml(g.keeper, true);
-      var vs = arr(g.victims);
-      for (var j = 0; j < vs.length; j++) h += rowHtml(vs[j], false);
-      h += "</div>";
-    }
-    box.innerHTML = h;
+  if (st.groups.length === 0) {
+    box.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><p>没有找到重复文件</p><div class="sub">尝试调整筛选条件或扫描其他目录</div></div>';
+    el("pagination").style.display = "none";
+    return;
   }
+  var h = "";
+  for (var i = 0; i < st.groups.length; i++) {
+    var g = st.groups[i];
+    h += '<div class="group-item"><div class="group-header"><span class="dir">[' + (st.offset + i + 1) + '] ' + esc(g.dir) + '</span><span class="badge">' + g.victims.length + ' 个副本</span></div>';
+    h += rowHtml(g.keeper, true);
+    var vs = arr(g.victims);
+    for (var j = 0; j < vs.length; j++) h += rowHtml(vs[j], false);
+    h += "</div>";
+  }
+  box.innerHTML = h;
+  el("pagination").style.display = "flex";
+
   var cbs = box.querySelectorAll("input.pick");
   for (var k = 0; k < cbs.length; k++) {
     cbs[k].addEventListener("change", function(){
       var p = this.getAttribute("data-path");
       var checked = this.checked;
       api("/api/select", "POST", { paths: [p], selected: checked }).then(function(d){
-        if (d.ok) { st.selectedNow = d.selectedNow; st.selectedBytes = (d.selectedBytes || st.selectedBytes); loadPage(st.offset); }
+        if (d.ok) { st.selectedNow = d.selectedNow; st.selectedBytes = (d.selectedBytes || st.selectedBytes); updateSel(); }
       });
     });
   }
@@ -208,14 +338,18 @@ function renderPage(groups){
   el("nextBtn").disabled = (st.offset + st.limit) >= st.total;
 }
 
+function updateSel(){
+  el("selInfo").textContent = "已勾选 " + st.selectedNow + " 个文件";
+  var sv = el("selBytesV"); if (sv) sv.textContent = fmt(st.selectedBytes || 0);
+}
+
 function loadPage(offset){
   st.offset = offset;
   var q = "/api/page?offset=" + offset + "&limit=" + st.limit + "&filter=" + encodeURIComponent(st.filter) + "&minKB=" + st.minKB;
   api(q).then(function(d){
-    if (!d.ok) { status('<span class="err">' + esc(d.error) + "</span>", true); return; }
+    if (!d.ok) { console.error(d.error); return; }
     st.total = d.total; st.selectedNow = d.selectedNow;
     st.selectedBytes = d.selectedBytes || 0;
-    status("共 " + d.total + " 组匹配" + (st.minKB > 0 ? ("（仅显示可释放 ≥ " + st.minKB + " KB 的组）") : "") + (st.filter ? ("，关键字：" + st.filter) : ""));
     renderPage(d.groups); updateSel();
   });
 }
@@ -225,11 +359,11 @@ function showProgress(p){
   var pct = Number(p.percent) || 0;
   el("progFill").style.width = pct + "%";
   var phaseText = { indexing:"索引目录", scanning:"扫描中", done:"完成", error:"出错", idle:"等待" }[p.phase] || p.phase;
-  var t = phaseText + " · " + (p.message || "") + " · 已用 " + (p.elapsedSec || 0) + " 秒";
-  if (p.phase === "scanning" || p.phase === "indexing") { el("progFill").style.width = "100%"; el("progFill").style.background = "#93c5fd"; }
-  else if (p.phase === "done") { el("progFill").style.background = "#059669"; }
-  else if (p.phase === "error") { el("progFill").style.background = "#dc2626"; }
-  el("progText").textContent = t + (p.error ? ("  —— " + p.error) : "");
+  el("progPhase").textContent = phaseText + " · " + (p.message || "");
+  el("progTime").textContent = (p.elapsedSec || 0) + " 秒";
+  if (p.phase === "done") { el("progFill").style.background = "var(--success)"; }
+  else if (p.phase === "error") { el("progFill").style.background = "var(--danger)"; }
+  else { el("progFill").style.background = "var(--accent)"; }
 }
 
 function pollProgress(){
@@ -239,8 +373,7 @@ function pollProgress(){
     if (d.busy) { st.polling = setTimeout(pollProgress, 800); }
     else {
       el("scanBtn").disabled = false;
-      if (d.progress && d.progress.phase === "done") { status(""); loadPage(0); }
-      else if (d.progress && d.progress.phase === "error") { status('<span class="err">' + esc(d.progress.error) + "</span>", true); }
+      if (d.progress && d.progress.phase === "done") { loadPage(0); }
     }
   });
 }
@@ -248,19 +381,18 @@ function pollProgress(){
 function startScan(){
   el("scanBtn").disabled = true;
   el("progFill").style.width = "0%";
-  el("progFill").style.background = "#2563eb";
-  status("正在启动扫描…");
   api("/api/scan", "POST", {
     path: el("path").value,
     recurse: el("recurse").checked,
     strategy: el("strategy").value,
     verify: el("verify").value,
     headKB: Number(el("headKB").value),
-    detectLinks: el("links").checked
+    detectLinks: el("links").checked,
+    minFileSize: Number(el("minFileSize").value)
   }).then(function(d){
-    if (!d.ok) { status('<span class="err">' + esc(d.error) + "</span>", true); el("scanBtn").disabled = false; return; }
+    if (!d.ok) { alert("扫描失败: " + d.error); el("scanBtn").disabled = false; return; }
     el("summary").innerHTML = "";
-    el("groups").innerHTML = "";
+    el("groups").innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><p>正在扫描…</p></div>';
     pollProgress();
   });
 }
@@ -269,13 +401,11 @@ function loadQuarantine(){
   api("/api/quarantine").then(function(d){
     if (!d.ok) return;
     el("qPanel").style.display = "block";
-    if (!d.sessions || d.sessions.length === 0) { el("qList").textContent = "暂无"; return; }
+    if (!d.sessions || d.sessions.length === 0) { el("qList").innerHTML = '<div style="color:var(--text-secondary);text-align:center;padding:20px">隔离区为空</div>'; return; }
     var h = "";
     for (var i = 0; i < d.sessions.length; i++) {
       var s = d.sessions[i];
-      h += '<div class="sess"><span class="p">' + esc(s.name) + ' · ' + s.files + " 个 · " + fmt(s.bytes) + '</span>' +
-           '<button class="ghost" data-restore="' + esc(s.path) + '">还原</button>' +
-           '<button class="danger" data-purge="' + esc(s.path) + '">永久清空</button></div>';
+      h += '<div class="quarantine-item"><span class="path">' + esc(s.name) + ' · ' + s.files + ' 个 · ' + fmt(s.bytes) + '</span><div class="actions"><button class="btn btn-ghost" data-restore="' + esc(s.path) + '">还原</button><button class="btn btn-danger" data-purge="' + esc(s.path) + '">清空</button></div></div>';
     }
     el("qList").innerHTML = h;
     var rs = el("qList").querySelectorAll("button[data-restore]");
@@ -284,49 +414,42 @@ function loadQuarantine(){
     });
     var ps = el("qList").querySelectorAll("button[data-purge]");
     for (var m = 0; m < ps.length; m++) ps[m].addEventListener("click", function(){
-      if (!confirm("永久删除这些隔离文件？不可恢复（操作日志会保留）。")) return;
+      if (!confirm("永久删除这些隔离文件？不可恢复！")) return;
       api("/api/purge", "POST", { session: this.getAttribute("data-purge") }).then(function(){ loadQuarantine(); });
     });
   });
 }
 
+// 事件绑定
 el("scanBtn").addEventListener("click", startScan);
 el("prevBtn").addEventListener("click", function(){ loadPage(Math.max(0, st.offset - st.limit)); });
 el("nextBtn").addEventListener("click", function(){ loadPage(st.offset + st.limit); });
-function applyFilters(){ st.filter = el("filter").value; st.minKB = Number(el("minSize").value) || 0; loadPage(0); }
+function applyFilters(){ st.filter = el("filter").value; st.minKB = Number(el("minGroupSize").value) || 0; loadPage(0); }
 el("filterBtn").addEventListener("click", applyFilters);
-el("sizeBtn").addEventListener("click", applyFilters);
-el("minSize").addEventListener("change", applyFilters);
-function updateHeadHint(){ var kb = Number(el("headKB").value) || 32; el("headHint").textContent = "先比每个文件最前面的 " + kb + " KB，指纹不同就不读整个文件"; }
-el("headKB").addEventListener("change", updateHeadHint);
-updateHeadHint();
-el("clearFilterBtn").addEventListener("click", function(){ el("filter").value = ""; st.filter = ""; el("minSize").value = "0"; st.minKB = 0; loadPage(0); });
+el("clearFilterBtn").addEventListener("click", function(){ el("filter").value = ""; st.filter = ""; el("minGroupSize").value = "0"; st.minKB = 0; loadPage(0); });
 el("filter").addEventListener("keydown", function(e){ if (e.key === "Enter") { applyFilters(); } });
 el("allBtn").addEventListener("click", function(){ api("/api/select", "POST", { mode: "all" }).then(function(d){ if(d.ok){ st.selectedNow=d.selectedNow; loadPage(st.offset);} }); });
 el("noneBtn").addEventListener("click", function(){ api("/api/select", "POST", { mode: "none" }).then(function(d){ if(d.ok){ st.selectedNow=d.selectedNow; loadPage(st.offset);} }); });
 el("qBtn").addEventListener("click", function(){
-  if (!confirm("把勾选的文件移入隔离区？（可一键还原，日志会记录）")) return;
-  status("正在移入隔离区…");
+  if (!confirm("把勾选的文件移入隔离区？（可一键还原）")) return;
   api("/api/quarantine", "POST", { paths: [] }).then(function(d){
-    if (!d.ok) { status('<span class="err">' + esc(d.error) + "</span>", true); return; }
-    status('<span class="ok">已移入隔离区 ' + d.moved + " 个 / " + fmt(d.bytes) + "</span>", true);
+    if (!d.ok) { alert("失败: " + d.error); return; }
     st.selectedNow = d.selectedNow; updateSel(); loadPage(st.offset);
   });
 });
 el("delBtn").addEventListener("click", function(){
   if (!confirm("永久删除勾选的文件？不可恢复！建议改用「移入隔离区」。")) return;
   if (!confirm("再次确认：真的要永久删除吗？")) return;
-  status("正在永久删除…");
   api("/api/delete", "POST", { confirm: true, paths: [] }).then(function(d){
-    if (!d.ok) { status('<span class="err">' + esc(d.error) + "</span>", true); return; }
-    status('<span class="ok">已永久删除 ' + d.deleted + " 个 / " + fmt(d.bytes) + "</span>", true);
+    if (!d.ok) { alert("失败: " + d.error); return; }
     st.selectedNow = d.selectedNow; updateSel(); loadPage(st.offset);
   });
 });
 el("expBtn").addEventListener("click", function(){ window.location = "/api/export?t=" + T; });
 el("qShowBtn").addEventListener("click", loadQuarantine);
-el("stopBtn").addEventListener("click", function(){ if (confirm("关闭本地服务？")) api("/api/stop").then(function(){ document.body.innerHTML = "<p style='padding:40px;font-size:16px'>服务已停止，可以关闭此页面。</p>"; }); });
+el("stopBtn").addEventListener("click", function(){ if (confirm("关闭本地服务？")) api("/api/stop").then(function(){ document.body.innerHTML = "<div style='padding:60px;text-align:center;font-size:18px;color:var(--text-secondary)'>服务已停止，可以关闭此页面。</div>"; }); });
 
+// 初始化
 api("/api/config").then(function(c){
   if (!c.ok) return;
   el("path").value = c.basePath || "";

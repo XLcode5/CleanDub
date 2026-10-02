@@ -433,6 +433,43 @@ while (-not $state.Stop) {
             continue
         }
 
+        # 目录浏览 API
+        if ($pathOnly -eq '/api/browse') {
+            $dir = [string]$query['dir']
+            if ([string]::IsNullOrWhiteSpace($dir)) { $dir = [System.Environment]::GetFolderPath('Desktop') }
+            try {
+                $dir = [System.IO.Path]::GetFullPath($dir)
+                if (-not (Test-Path -LiteralPath $dir -PathType Container)) { Write-JsonResponse -Stream $stream -Object ([ordered]@{ ok = $false; error = '目录不存在' }) -Code 400; continue }
+                $items = New-Object System.Collections.ArrayList
+                # 添加父目录链接
+                $parent = [System.IO.Path]::GetDirectoryName($dir)
+                if ($parent -ne $null -and $parent -ne $dir) { [void]$items.Add([ordered]@{ name = '..'; path = $parent; isDir = $true; isParent = $true }) }
+                # 列出子目录
+                foreach ($d in [System.IO.Directory]::GetDirectories($dir)) {
+                    try {
+                        $info = [System.IO.DirectoryInfo]::new($d)
+                        if (($info.Attributes -band [System.IO.FileAttributes]::Hidden) -eq [System.IO.FileAttributes]::Hidden) { continue }
+                        [void]$items.Add([ordered]@{ name = $info.Name; path = $info.FullName; isDir = $true; isParent = $false })
+                    } catch { }
+                }
+                # 列出文件（只读前 50 个，避免卡死）
+                $fileCount = 0
+                foreach ($f in [System.IO.Directory]::GetFiles($dir)) {
+                    if ($fileCount -ge 50) { break }
+                    try {
+                        $info = [System.IO.FileInfo]::new($f)
+                        if (($info.Attributes -band [System.IO.FileAttributes]::Hidden) -eq [System.IO.FileAttributes]::Hidden) { continue }
+                        [void]$items.Add([ordered]@{ name = $info.Name; path = $info.FullName; isDir = $false; size = $info.Length })
+                        $fileCount++
+                    } catch { }
+                }
+                Write-JsonResponse -Stream $stream -Object ([ordered]@{ ok = $true; current = $dir; items = @($items) })
+            } catch {
+                Write-JsonResponse -Stream $stream -Object ([ordered]@{ ok = $false; error = $_.Exception.Message }) -Code 500
+            }
+            continue
+        }
+
         if ($pathOnly -eq '/api/progress') {
             Write-JsonResponse -Stream $stream -Object ([ordered]@{ ok = $true; busy = [bool]$state.Busy; progress = $state.Progress })
             continue
