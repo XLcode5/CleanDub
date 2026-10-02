@@ -114,10 +114,10 @@
 ## 阶段五：GitHub 开源（D5）
 
 ### D5.1 仓库创建
-- [ ] 仓库名：`cleandup`
-- [ ] 描述：Windows 重复文件清理工具，内容级判重，安全隔离区
-- [ ] Public 仓库
-- [ ] 添加 Topics：`duplicate-files`, `dedup`, `powershell`, `windows`, `file-cleanup`
+- [x] 仓库名：`CleanDub`
+- [x] 描述：Windows重复文件清理工具 — 哈希校对、内容级判重，安全隔离区，误删可还原
+- [x] Public 仓库
+- [x] 添加 Topics：`duplicate-files`, `dedup`, `powershell`, `windows`, `file-cleanup`
 
 ### D5.2 文档完善
 - [ ] README.md（英文 + 中文）
