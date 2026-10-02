@@ -512,6 +512,8 @@ while (-not $state.Stop) {
             if ($query['filter']) { $filter = [string]$query['filter'] }
             $minKB = 0
             if ($query['minKB']) { [void][int]::TryParse([string]$query['minKB'], [ref]$minKB) }
+            $extFilter = ''
+            if ($query['ext']) { $extFilter = [string]$query['ext'] }
             if ($limit -lt 1 -or $limit -gt 500) { $limit = $script:PageSize }
             if ($offset -lt 0) { $offset = 0 }
             $list = @($state.Scan.groups)
@@ -522,6 +524,18 @@ while (-not $state.Stop) {
             if ($minKB -gt 0) {
                 $minBytes = [int64]$minKB * 1024
                 $list = @($list | Where-Object { [int64]$_['real'] -ge $minBytes })
+            }
+            if ($extFilter) {
+                $exts = @($extFilter.ToLowerInvariant() -split ',')
+                $list = @($list | Where-Object {
+                    $g = $_
+                    $match = $false
+                    foreach ($v in @($g.victims)) {
+                        $ext = [System.IO.Path]::GetExtension([string]$v.name).ToLowerInvariant()
+                        if ($exts -contains $ext) { $match = $true; break }
+                    }
+                    $match
+                })
             }
             $total = $list.Count
             $page = @($list | Select-Object -Skip $offset -First $limit)
@@ -652,6 +666,18 @@ while (-not $state.Stop) {
             $all = [System.IO.File]::ReadAllBytes($tmp)
             try { Remove-Item -LiteralPath $tmp -Force } catch { }
             Write-HttpResponse -Stream $stream -Code 200 -ContentType 'text/csv; charset=utf-8' -Body $all -ExtraHeaders ('Content-Disposition: attachment; filename="dedup-plan.csv"' + (Get-CRLF))
+            continue
+        }
+
+        if ($pathOnly -eq '/api/stop-scan') {
+            if ($state.Job -ne $null) {
+                try { Stop-Job -Job $state.Job -ErrorAction SilentlyContinue } catch { }
+                try { Remove-Job -Job $state.Job -Force -ErrorAction SilentlyContinue } catch { }
+                $state.Job = $null
+            }
+            $state.Busy = $false
+            $state.Progress = [ordered]@{ phase = 'idle'; message = '已终止'; percent = 0; elapsedSec = 0 }
+            Write-JsonResponse -Stream $stream -Object ([ordered]@{ ok = $true; message = '扫描已终止' })
             continue
         }
 

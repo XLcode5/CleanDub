@@ -5,32 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ClearApp — 重复文件清理</title>
 <style>
-:root {
-  --bg: #0f172a;
-  --bg-card: #1e293b;
-  --bg-hover: #334155;
-  --border: #334155;
-  --text: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --radius: 12px;
-  --shadow: 0 4px 6px -1px rgba(0,0,0,.3), 0 2px 4px -2px rgba(0,0,0,.3);
-}
-[data-theme="light"] {
-  --bg: #f1f5f9;
-  --bg-card: #ffffff;
-  --bg-hover: #e2e8f0;
-  --border: #cbd5e1;
-  --text: #1e293b;
-  --text-secondary: #64748b;
-  --accent: #2563eb;
-  --accent-hover: #1d4ed8;
-  --shadow: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -2px rgba(0,0,0,.1);
-}
+:root{--bg:#0f172a;--bg-card:#1e293b;--bg-hover:#334155;--border:#334155;--text:#f1f5f9;--text-secondary:#94a3b8;--accent:#3b82f6;--accent-hover:#2563eb;--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--radius:12px;--shadow:0 4px 6px -1px rgba(0,0,0,.3),0 2px 4px -2px rgba(0,0,0,.3)}
+[data-theme="light"]{--bg:#f1f5f9;--bg-card:#fff;--bg-hover:#e2e8f0;--border:#cbd5e1;--text:#1e293b;--text-secondary:#64748b;--accent:#2563eb;--accent-hover:#1d4ed8;--shadow:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1)}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s}
 .app{max-width:1200px;margin:0 auto;padding:24px 20px 100px}
@@ -50,15 +26,12 @@ body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;background:va
 .checkbox-group{display:flex;align-items:center;gap:8px;padding:10px 0}
 .checkbox-group input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent)}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 20px;border-radius:8px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}
-.btn-primary{background:var(--accent);color:#fff}
-.btn-primary:hover{background:var(--accent-hover)}
-.btn-primary:disabled{background:var(--text-secondary);cursor:not-allowed}
-.btn-danger{background:var(--danger);color:#fff}
-.btn-danger:hover{background:#dc2626}
-.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
-.btn-ghost:hover{background:var(--bg-hover)}
-.btn-success{background:var(--success);color:#fff}
-.btn-success:hover{background:#059669}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:var(--accent-hover)}.btn-primary:disabled{background:var(--text-secondary);cursor:not-allowed}
+.btn-danger{background:var(--danger);color:#fff}.btn-danger:hover{background:#dc2626}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text)}.btn-ghost:hover{background:var(--bg-hover)}
+.btn-success{background:var(--success);color:#fff}.btn-success:hover{background:#059669}
+.btn-browse{background:var(--bg-hover);color:var(--text);border:1px solid var(--border);padding:10px 16px;font-size:14px}.btn-browse:hover{background:var(--border)}
+.btn-stop{background:var(--warning);color:#000}.btn-stop:hover{background:#d97706}
 .progress-wrap{display:none;margin-top:16px}
 .progress-bar{height:8px;background:var(--bg-hover);border-radius:4px;overflow:hidden}
 .progress-fill{height:100%;width:0%;background:var(--accent);border-radius:4px;transition:width .3s ease}
@@ -94,7 +67,7 @@ body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;background:va
 .pagination button{background:var(--bg-card);border:1px solid var(--border);color:var(--text);padding:6px 14px;border-radius:6px;cursor:pointer;transition:all .2s}
 .pagination button:hover:not(:disabled){background:var(--bg-hover)}
 .pagination button:disabled{opacity:.5;cursor:not-allowed}
-.action-bar{position:fixed;bottom:0;left:0;right:0;background:var(--bg-card);border-top:1px solid var(--border);padding:16px 20px;display:flex;gap:12px;align-items:center;box-shadow:0 -4px 6px -1px rgba(0,0,0,.1)}
+.action-bar{position:fixed;bottom:0;left:0;right:0;background:var(--bg-card);border-top:1px solid var(--border);padding:16px 20px;display:flex;gap:12px;align-items:center;box-shadow:0 -4px 6px -1px rgba(0,0,0,.1);z-index:100}
 .action-bar .spacer{flex:1}
 .action-bar .info{font-size:14px;color:var(--text-secondary)}
 .quarantine-panel{display:none;margin-top:16px}
@@ -105,25 +78,36 @@ body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;background:va
 .empty-state svg{width:64px;height:64px;margin-bottom:16px;opacity:.5}
 .empty-state p{font-size:16px;margin-bottom:8px}
 .empty-state .sub{font-size:14px}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:1000}
+.modal-overlay.active{display:flex}
+.modal{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;width:90%;max-width:600px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 25px -5px rgba(0,0,0,.3)}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.modal-header h3{font-size:16px;font-weight:600}
+.modal-close{background:none;border:none;color:var(--text-secondary);font-size:20px;cursor:pointer;padding:4px}
+.modal-body{flex:1;overflow-y:auto;padding:12px}
+.modal-footer{padding:16px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px}
+.dir-breadcrumb{padding:10px 16px;background:var(--bg);border-radius:8px;margin-bottom:12px;font-size:13px;color:var(--text-secondary);word-break:break-all}
+.dir-list{display:flex;flex-direction:column;gap:4px}
+.dir-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:background .2s;font-size:14px}
+.dir-item:hover{background:var(--bg-hover)}
+.dir-item svg{width:18px;height:18px;flex-shrink:0}
+.dir-item .name{flex:1;word-break:break-all}
+.dir-item .size{color:var(--text-secondary);font-size:12px}
+.dir-item.parent{color:var(--accent)}
 @media (max-width:768px){
   .controls{grid-template-columns:1fr}
   .file-row{grid-template-columns:32px 1fr 80px;gap:8px}
   .file-row .mtime{display:none}
   .action-bar{flex-wrap:wrap}
+  .modal{width:95%;max-height:90vh}
 }
 </style>
 </head>
 <body>
 <div class="app">
   <div class="header">
-    <h1>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-      ClearApp
-    </h1>
-    <button class="theme-btn" onclick="toggleTheme()">
-      <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-      深色模式
-    </button>
+    <h1><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>ClearApp</h1>
+    <button class="theme-btn" onclick="toggleTheme()"><svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>深色模式</button>
   </div>
 
   <div class="card">
@@ -131,7 +115,10 @@ body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;background:va
     <div class="controls">
       <div class="control-group" style="grid-column:1/-1">
         <label>扫描目录（支持多个，用分号分隔）</label>
-        <input type="text" id="path" placeholder="D:\Downloads; E:\Photos">
+        <div style="display:flex;gap:8px">
+          <input type="text" id="path" placeholder="D:\Downloads; E:\Photos" style="flex:1">
+          <button class="btn btn-browse" id="browseBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>浏览…</button>
+        </div>
       </div>
       <div class="control-group">
         <label>保留策略</label>
@@ -143,19 +130,21 @@ body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;background:va
         </select>
       </div>
       <div class="control-group">
-        <label>校验级别</label>
+        <label>扫描方式</label>
         <select id="verify">
-          <option value="Full">全量哈希（准确）</option>
-          <option value="Head">只比头部（最快）</option>
+          <option value="Full">精确扫描（完整比对，最准）</option>
+          <option value="Head">快速扫描（只比开头，快很多）</option>
         </select>
       </div>
       <div class="control-group">
-        <label>头部大小</label>
+        <label>预筛强度
+          <span style="font-size:11px;color:var(--text-secondary);font-weight:normal" title="扫描前先读文件开头一小段做快速排除，不相同就直接跳过，不用读整个文件。强度越高预筛越准，但读取量越大。">（开头读多少做快速排除）</span>
+        </label>
         <select id="headKB">
-          <option value="16">16 KB</option>
-          <option value="32" selected>32 KB</option>
-          <option value="64">64 KB</option>
-          <option value="128">128 KB</option>
+          <option value="16">低（16 KB，小文件多时用）</option>
+          <option value="32" selected>中（32 KB，推荐平衡）</option>
+          <option value="64">高（64 KB，大文件多时用）</option>
+          <option value="128">最高（128 KB，视频等大文件）</option>
         </select>
       </div>
       <div class="control-group">
@@ -168,27 +157,16 @@ body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;background:va
           <option value="1048576">≥ 1 MB</option>
         </select>
       </div>
-      <div class="checkbox-group">
-        <input type="checkbox" id="recurse" checked>
-        <label for="recurse" style="margin:0">递归子目录</label>
-      </div>
-      <div class="checkbox-group">
-        <input type="checkbox" id="links" checked>
-        <label for="links" style="margin:0">检测硬链接</label>
-      </div>
-      <div class="control-group">
-        <button class="btn btn-primary" id="scanBtn" style="width:100%">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-          开始扫描
-        </button>
+      <div class="checkbox-group"><input type="checkbox" id="recurse" checked><label for="recurse" style="margin:0">递归子目录</label></div>
+      <div class="checkbox-group"><input type="checkbox" id="links" checked><label for="links" style="margin:0">检测硬链接</label></div>
+      <div class="control-group" style="display:flex;flex-direction:row;gap:8px;align-items:flex-end">
+        <button class="btn btn-primary" id="scanBtn" style="flex:1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>开始扫描</button>
+        <button class="btn btn-stop" id="stopScanBtn" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><rect x="6" y="6" width="12" height="12"/></svg>终止</button>
       </div>
     </div>
     <div class="progress-wrap" id="progWrap">
       <div class="progress-bar"><div class="progress-fill" id="progFill"></div></div>
-      <div class="progress-text">
-        <span id="progPhase">等待中…</span>
-        <span id="progTime">0 秒</span>
-      </div>
+      <div class="progress-text"><span id="progPhase">等待中…</span><span id="progTime">0 秒</span></div>
     </div>
   </div>
 
@@ -196,6 +174,14 @@ body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;background:va
 
   <div class="filter-bar">
     <input type="text" id="filter" placeholder="搜索目录或文件名…">
+    <select id="filterExt">
+      <option value="">全部类型</option>
+      <option value=".jpg,.jpeg,.png,.gif,.bmp,.webp">图片</option>
+      <option value=".mp4,.avi,.mkv,.mov,.wmv">视频</option>
+      <option value=".mp3,.wav,.flac,.aac">音频</option>
+      <option value=".doc,.docx,.xls,.xlsx,.ppt,.pptx,.pdf">文档</option>
+      <option value=".zip,.rar,.7z,.tar,.gz">压缩包</option>
+    </select>
     <select id="minGroupSize">
       <option value="0">不限大小</option>
       <option value="1024">≥ 1 MB</option>
@@ -208,29 +194,15 @@ body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;background:va
   </div>
 
   <div id="groups" class="group-list">
-    <div class="empty-state">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-      <p>尚未开始扫描</p>
-      <div class="sub">设置扫描目录后点击「开始扫描」</div>
-    </div>
+    <div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><p>尚未开始扫描</p><div class="sub">设置扫描目录后点击「开始扫描」</div></div>
   </div>
 
-  <div class="pagination" id="pagination" style="display:none">
-    <button id="prevBtn">上一页</button>
-    <span id="pageInfo">-</span>
-    <button id="nextBtn">下一页</button>
-  </div>
+  <div class="pagination" id="pagination" style="display:none"><button id="prevBtn">上一页</button><span id="pageInfo">-</span><button id="nextBtn">下一页</button></div>
 
-  <div class="card quarantine-panel" id="qPanel">
-    <div class="card-title">隔离区管理</div>
-    <div id="qList"></div>
-  </div>
+  <div class="card quarantine-panel" id="qPanel"><div class="card-title">隔离区管理</div><div id="qList"></div></div>
 
   <div class="action-bar">
-    <button class="btn btn-success" id="qBtn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M5 8l6 6 6-6"/></svg>
-      移入隔离区
-    </button>
+    <button class="btn btn-success" id="qBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M5 8l6 6 6-6"/></svg>移入隔离区</button>
     <button class="btn btn-danger" id="delBtn">永久删除</button>
     <div class="spacer"></div>
     <span class="info" id="selInfo">已勾选 0 个文件</span>
@@ -242,223 +214,94 @@ body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;background:va
   </div>
 </div>
 
+<div class="modal-overlay" id="browseModal">
+  <div class="modal">
+    <div class="modal-header"><h3>选择扫描目录</h3><button class="modal-close" id="browseClose">&times;</button></div>
+    <div class="modal-body"><div class="dir-breadcrumb" id="browsePath">加载中…</div><div class="dir-list" id="browseList"></div></div>
+    <div class="modal-footer"><button class="btn btn-ghost" id="browseCancel">取消</button><button class="btn btn-primary" id="browseSelect">选择此目录</button></div>
+  </div>
+</div>
+
 <script>
-// 主题切换
-function toggleTheme(){
-  var html = document.documentElement;
-  var icon = document.getElementById('themeIcon');
-  var btn = document.querySelector('.theme-btn');
-  if(html.getAttribute('data-theme') === 'light'){
-    html.removeAttribute('data-theme');
-    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg> 深色模式';
-    localStorage.setItem('clearapp-theme','dark');
-  } else {
-    html.setAttribute('data-theme','light');
-    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg> 浅色模式';
-    localStorage.setItem('clearapp-theme','light');
-  }
-}
-// 初始化主题
-(function(){
-  var saved = localStorage.getItem('clearapp-theme');
-  if(saved === 'light'){ document.documentElement.setAttribute('data-theme','light'); }
-})();
+function toggleTheme(){var h=document.documentElement,b=document.querySelector('.theme-btn');if(h.getAttribute('data-theme')==='light'){h.removeAttribute('data-theme');b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg> 深色模式';localStorage.setItem('clearapp-theme','dark')}else{h.setAttribute('data-theme','light');b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg> 浅色模式';localStorage.setItem('clearapp-theme','light')}}
+(function(){var s=localStorage.getItem('clearapp-theme');if(s==='light'){document.documentElement.setAttribute('data-theme','light')}})();
 
-// 以下保持原有 JS 逻辑，适配新 UI 的 ID
-var T = "__TOKEN__";
-var st = { offset: 0, limit: 50, total: 0, filter: "", minKB: 0, groups: [], summary: null, selectedNow: 0, selectedBytes: 0, polling: null };
+var T="__TOKEN__";
+var st={offset:0,limit:50,total:0,filter:"",minKB:0,filterExt:"",groups:[],summary:null,selectedNow:0,selectedBytes:0,polling:null,scanning:false};
 
-function el(id){ return document.getElementById(id); }
-function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
-function fmt(b){ b = Number(b) || 0; if (b >= 1073741824) return (b/1073741824).toFixed(2)+" GB"; if (b >= 1048576) return (b/1048576).toFixed(2)+" MB"; if (b >= 1024) return (b/1024).toFixed(1)+" KB"; return b+" B"; }
-function arr(x){ if (x == null) return []; return Array.isArray(x) ? x : [x]; }
+function el(id){return document.getElementById(id)}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function fmt(b){b=Number(b)||0;if(b>=1073741824)return(b/1073741824).toFixed(2)+" GB";if(b>=1048576)return(b/1048576).toFixed(2)+" MB";if(b>=1024)return(b/1024).toFixed(1)+" KB";return b+" B"}
+function arr(x){if(x==null)return[];return Array.isArray(x)?x:[x]}
 
-function api(path, method, body){
-  var url = path + (path.indexOf("?") >= 0 ? "&" : "?") + "t=" + T;
-  var opt = { method: method || "GET", headers: {} };
-  if (body !== undefined) { opt.headers["Content-Type"] = "application/json"; opt.body = JSON.stringify(body); }
-  return fetch(url, opt).then(function(r){ return r.json(); });
-}
+function api(path,method,body){var url=path+(path.indexOf("?")>=0?"&":"?")+"t="+T;var opt={method:method||"GET",headers:{}};if(body!==undefined){opt.headers["Content-Type"]="application/json";opt.body=JSON.stringify(body)}return fetch(url,opt).then(function(r){return r.json()})}
 
-function renderSummary(){
-  var s = st.summary; if (!s) return;
-  var h = '<div class="stats-grid">';
-  h += '<div class="stat-card"><div class="label">重复组</div><div class="value">' + s.totalGroups + '</div><div class="sub">扫描 ' + s.scannedFiles + ' 个文件</div></div>';
-  h += '<div class="stat-card"><div class="label">待清理文件</div><div class="value">' + s.totalVictims + '</div><div class="sub">已校验 ' + (s.verifiedVictims||0) + ' · 不一致 ' + (s.differVictims||0) + '</div></div>';
-  h += '<div class="stat-card highlight"><div class="label">预计释放（勾选）</div><div class="value" id="selBytesV">' + fmt(st.selectedBytes || 0) + '</div><div class="sub">已勾选 ' + st.selectedNow + ' 个文件</div></div>';
-  h += '<div class="stat-card"><div class="label">表面可释放</div><div class="value">' + fmt(s.nominalBytes) + '</div><div class="sub">全部待删项总和</div></div>';
-  h += '<div class="stat-card ' + (s.sharedVictims ? 'warning' : 'highlight') + '"><div class="label">真实可释放</div><div class="value">' + fmt(s.realBytes) + '</div><div class="sub">' + (s.sharedVictims ? (s.sharedVictims + ' 个硬链接不释放空间') : '全部是独立文件') + '</div></div>';
-  h += '<div class="stat-card"><div class="label">扫描耗时</div><div class="value">' + (s.elapsedMs/1000).toFixed(1) + 's</div><div class="sub">' + s.strategy + ' · ' + s.verify + '</div></div>';
-  h += "</div>";
-  el("summary").innerHTML = h;
-}
+function renderSummary(){var s=st.summary;if(!s)return;var h='<div class="stats-grid">';
+h+='<div class="stat-card"><div class="label">重复组</div><div class="value">'+s.totalGroups+'</div><div class="sub">扫描 '+s.scannedFiles+' 个文件</div></div>';
+h+='<div class="stat-card"><div class="label">待清理文件</div><div class="value">'+s.totalVictims+'</div><div class="sub">已校验 '+(s.verifiedVictims||0)+' · 不一致 '+(s.differVictims||0)+'</div></div>';
+h+='<div class="stat-card highlight"><div class="label">预计释放（勾选）</div><div class="value" id="selBytesV">'+fmt(st.selectedBytes||0)+'</div><div class="sub">已勾选 '+st.selectedNow+' 个文件</div></div>';
+h+='<div class="stat-card"><div class="label">表面可释放</div><div class="value">'+fmt(s.nominalBytes)+'</div><div class="sub">全部待删项总和</div></div>';
+h+='<div class="stat-card '+(s.sharedVictims?'warning':'highlight')+'"><div class="label">真实可释放</div><div class="value">'+fmt(s.realBytes)+'</div><div class="sub">'+(s.sharedVictims?(s.sharedVictims+' 个硬链接不释放空间'):'全部是独立文件')+'</div></div>';
+h+='<div class="stat-card"><div class="label">扫描耗时</div><div class="value">'+(s.elapsedMs/1000).toFixed(1)+'s</div><div class="sub">'+s.strategy+' · '+s.verify+'</div></div>';h+="</div>";el("summary").innerHTML=h}
 
-function rowHtml(f, isKeeper){
-  var linkBadge = (f.links > 1) ? '<span style="font-size:11px;padding:2px 6px;border-radius:4px;background:var(--warning);color:#000;margin-left:6px">硬链接 ' + f.links + '</span>' : "";
-  if (isKeeper) {
-    return '<div class="file-row keeper"><span></span><span class="name"><span class="tag">保留</span>' + esc(f.name) + '</span><span class="mtime">' + esc(f.mtime) + '</span><span class="size">' + fmt(f.size) + '</span></div>';
-  }
-  return '<div class="file-row victim"><span><input type="checkbox" class="pick" data-path="' + esc(f.path) + '"' + (f.selected ? " checked" : "") + '></span><span class="name"><span class="tag">删除</span>' + esc(f.name) + linkBadge + '</span><span class="mtime">' + esc(f.mtime) + '</span><span class="size">' + fmt(f.size) + '</span></div>';
-}
+function rowHtml(f,isKeeper){var linkBadge=(f.links>1)?'<span style="font-size:11px;padding:2px 6px;border-radius:4px;background:var(--warning);color:#000;margin-left:6px">硬链接 '+f.links+'</span>':"";
+if(isKeeper){return '<div class="file-row keeper"><span></span><span class="name"><span class="tag">保留</span>'+esc(f.name)+'</span><span class="mtime">'+esc(f.mtime)+'</span><span class="size">'+fmt(f.size)+'</span></div>'}
+return '<div class="file-row victim"><span><input type="checkbox" class="pick" data-path="'+esc(f.path)+'"'+(f.selected?" checked":"")+'></span><span class="name"><span class="tag">删除</span>'+esc(f.name)+linkBadge+'</span><span class="mtime">'+esc(f.mtime)+'</span><span class="size">'+fmt(f.size)+'</span></div>'}
 
-function renderPage(groups){
-  st.groups = arr(groups);
-  var box = el("groups");
-  if (st.groups.length === 0) {
-    box.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><p>没有找到重复文件</p><div class="sub">尝试调整筛选条件或扫描其他目录</div></div>';
-    el("pagination").style.display = "none";
-    return;
-  }
-  var h = "";
-  for (var i = 0; i < st.groups.length; i++) {
-    var g = st.groups[i];
-    h += '<div class="group-item"><div class="group-header"><span class="dir">[' + (st.offset + i + 1) + '] ' + esc(g.dir) + '</span><span class="badge">' + g.victims.length + ' 个副本</span></div>';
-    h += rowHtml(g.keeper, true);
-    var vs = arr(g.victims);
-    for (var j = 0; j < vs.length; j++) h += rowHtml(vs[j], false);
-    h += "</div>";
-  }
-  box.innerHTML = h;
-  el("pagination").style.display = "flex";
+function renderPage(groups){st.groups=arr(groups);var box=el("groups");
+if(st.groups.length===0){box.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><p>没有找到重复文件</p><div class="sub">尝试调整筛选条件或扫描其他目录</div></div>';el("pagination").style.display="none";return}
+var h="";for(var i=0;i<st.groups.length;i++){var g=st.groups[i];h+='<div class="group-item"><div class="group-header"><span class="dir">['+(st.offset+i+1)+'] '+esc(g.dir)+'</span><span class="badge">'+g.victims.length+' 个副本</span></div>';h+=rowHtml(g.keeper,true);var vs=arr(g.victims);for(var j=0;j<vs.length;j++)h+=rowHtml(vs[j],false);h+="</div>"}box.innerHTML=h;el("pagination").style.display="flex";
+var cbs=box.querySelectorAll("input.pick");for(var k=0;k<cbs.length;k++){cbs[k].addEventListener("change",function(){var p=this.getAttribute("data-path");var checked=this.checked;api("/api/select","POST",{paths:[p],selected:checked}).then(function(d){if(d.ok){st.selectedNow=d.selectedNow;st.selectedBytes=(d.selectedBytes||st.selectedBytes);updateSel()}})})}
+var pages=Math.max(1,Math.ceil(st.total/st.limit));var cur=Math.floor(st.offset/st.limit)+1;el("pageInfo").textContent="第 "+cur+" / "+pages+" 页，共 "+st.total+" 组";el("prevBtn").disabled=st.offset<=0;el("nextBtn").disabled=(st.offset+st.limit)>=st.total}
 
-  var cbs = box.querySelectorAll("input.pick");
-  for (var k = 0; k < cbs.length; k++) {
-    cbs[k].addEventListener("change", function(){
-      var p = this.getAttribute("data-path");
-      var checked = this.checked;
-      api("/api/select", "POST", { paths: [p], selected: checked }).then(function(d){
-        if (d.ok) { st.selectedNow = d.selectedNow; st.selectedBytes = (d.selectedBytes || st.selectedBytes); updateSel(); }
-      });
-    });
-  }
-  var pages = Math.max(1, Math.ceil(st.total / st.limit));
-  var cur = Math.floor(st.offset / st.limit) + 1;
-  el("pageInfo").textContent = "第 " + cur + " / " + pages + " 页，共 " + st.total + " 组";
-  el("prevBtn").disabled = st.offset <= 0;
-  el("nextBtn").disabled = (st.offset + st.limit) >= st.total;
-}
+function updateSel(){el("selInfo").textContent="已勾选 "+st.selectedNow+" 个文件";var sv=el("selBytesV");if(sv)sv.textContent=fmt(st.selectedBytes||0)}
 
-function updateSel(){
-  el("selInfo").textContent = "已勾选 " + st.selectedNow + " 个文件";
-  var sv = el("selBytesV"); if (sv) sv.textContent = fmt(st.selectedBytes || 0);
-}
+function loadPage(offset){st.offset=offset;var q="/api/page?offset="+offset+"&limit="+st.limit+"&filter="+encodeURIComponent(st.filter)+"&minKB="+st.minKB;if(st.filterExt){q+="&ext="+encodeURIComponent(st.filterExt)}api(q).then(function(d){if(!d.ok){console.error(d.error);return}st.total=d.total;st.selectedNow=d.selectedNow;st.selectedBytes=d.selectedBytes||0;renderPage(d.groups);updateSel()})}
 
-function loadPage(offset){
-  st.offset = offset;
-  var q = "/api/page?offset=" + offset + "&limit=" + st.limit + "&filter=" + encodeURIComponent(st.filter) + "&minKB=" + st.minKB;
-  api(q).then(function(d){
-    if (!d.ok) { console.error(d.error); return; }
-    st.total = d.total; st.selectedNow = d.selectedNow;
-    st.selectedBytes = d.selectedBytes || 0;
-    renderPage(d.groups); updateSel();
-  });
-}
+function showProgress(p){el("progWrap").style.display="block";var pct=Number(p.percent)||0;el("progFill").style.width=pct+"%";var phaseText={indexing:"索引目录",scanning:"扫描中",done:"完成",error:"出错",idle:"等待"}[p.phase]||p.phase;el("progPhase").textContent=phaseText+" · "+(p.message||"");el("progTime").textContent=(p.elapsedSec||0)+" 秒";if(p.phase==="done"){el("progFill").style.background="var(--success)"}else if(p.phase==="error"){el("progFill").style.background="var(--danger)"}else{el("progFill").style.background="var(--accent)"}}
 
-function showProgress(p){
-  el("progWrap").style.display = "block";
-  var pct = Number(p.percent) || 0;
-  el("progFill").style.width = pct + "%";
-  var phaseText = { indexing:"索引目录", scanning:"扫描中", done:"完成", error:"出错", idle:"等待" }[p.phase] || p.phase;
-  el("progPhase").textContent = phaseText + " · " + (p.message || "");
-  el("progTime").textContent = (p.elapsedSec || 0) + " 秒";
-  if (p.phase === "done") { el("progFill").style.background = "var(--success)"; }
-  else if (p.phase === "error") { el("progFill").style.background = "var(--danger)"; }
-  else { el("progFill").style.background = "var(--accent)"; }
-}
+function pollProgress(){api("/api/progress").then(function(d){if(!d.ok)return;showProgress(d.progress);if(d.busy){st.polling=setTimeout(pollProgress,800)}else{st.scanning=false;el("scanBtn").disabled=false;el("stopScanBtn").style.display="none";if(d.progress&&d.progress.phase==="done"){loadPage(0)}}})}
 
-function pollProgress(){
-  api("/api/progress").then(function(d){
-    if (!d.ok) return;
-    showProgress(d.progress);
-    if (d.busy) { st.polling = setTimeout(pollProgress, 800); }
-    else {
-      el("scanBtn").disabled = false;
-      if (d.progress && d.progress.phase === "done") { loadPage(0); }
-    }
-  });
-}
+function startScan(){st.scanning=true;el("scanBtn").disabled=true;el("stopScanBtn").style.display="inline-flex";el("progFill").style.width="0%";
+api("/api/scan","POST",{path:el("path").value,recurse:el("recurse").checked,strategy:el("strategy").value,verify:el("verify").value,headKB:Number(el("headKB").value),detectLinks:el("links").checked,minFileSize:Number(el("minFileSize").value)}).then(function(d){if(!d.ok){alert("扫描失败: "+d.error);st.scanning=false;el("scanBtn").disabled=false;el("stopScanBtn").style.display="none";return}
+el("summary").innerHTML="";el("groups").innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><p>正在扫描…</p></div>';pollProgress()})}
 
-function startScan(){
-  el("scanBtn").disabled = true;
-  el("progFill").style.width = "0%";
-  api("/api/scan", "POST", {
-    path: el("path").value,
-    recurse: el("recurse").checked,
-    strategy: el("strategy").value,
-    verify: el("verify").value,
-    headKB: Number(el("headKB").value),
-    detectLinks: el("links").checked,
-    minFileSize: Number(el("minFileSize").value)
-  }).then(function(d){
-    if (!d.ok) { alert("扫描失败: " + d.error); el("scanBtn").disabled = false; return; }
-    el("summary").innerHTML = "";
-    el("groups").innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><p>正在扫描…</p></div>';
-    pollProgress();
-  });
-}
+function stopScan(){if(!confirm("确定要终止当前扫描吗？已扫描的进度会丢失。"))return;api("/api/stop-scan","POST",{}).then(function(d){if(d.ok){st.scanning=false;el("scanBtn").disabled=false;el("stopScanBtn").style.display="none";el("progPhase").textContent="已终止";el("progFill").style.background="var(--warning)"}})}
 
-function loadQuarantine(){
-  api("/api/quarantine").then(function(d){
-    if (!d.ok) return;
-    el("qPanel").style.display = "block";
-    if (!d.sessions || d.sessions.length === 0) { el("qList").innerHTML = '<div style="color:var(--text-secondary);text-align:center;padding:20px">隔离区为空</div>'; return; }
-    var h = "";
-    for (var i = 0; i < d.sessions.length; i++) {
-      var s = d.sessions[i];
-      h += '<div class="quarantine-item"><span class="path">' + esc(s.name) + ' · ' + s.files + ' 个 · ' + fmt(s.bytes) + '</span><div class="actions"><button class="btn btn-ghost" data-restore="' + esc(s.path) + '">还原</button><button class="btn btn-danger" data-purge="' + esc(s.path) + '">清空</button></div></div>';
-    }
-    el("qList").innerHTML = h;
-    var rs = el("qList").querySelectorAll("button[data-restore]");
-    for (var k = 0; k < rs.length; k++) rs[k].addEventListener("click", function(){
-      api("/api/restore", "POST", { session: this.getAttribute("data-restore") }).then(function(){ loadQuarantine(); loadPage(0); });
-    });
-    var ps = el("qList").querySelectorAll("button[data-purge]");
-    for (var m = 0; m < ps.length; m++) ps[m].addEventListener("click", function(){
-      if (!confirm("永久删除这些隔离文件？不可恢复！")) return;
-      api("/api/purge", "POST", { session: this.getAttribute("data-purge") }).then(function(){ loadQuarantine(); });
-    });
-  });
-}
+function loadQuarantine(){api("/api/quarantine").then(function(d){if(!d.ok)return;el("qPanel").style.display="block";if(!d.sessions||d.sessions.length===0){el("qList").innerHTML='<div style="color:var(--text-secondary);text-align:center;padding:20px">隔离区为空</div>';return}
+var h="";for(var i=0;i<d.sessions.length;i++){var s=d.sessions[i];h+='<div class="quarantine-item"><span class="path">'+esc(s.name)+' · '+s.files+' 个 · '+fmt(s.bytes)+'</span><div class="actions"><button class="btn btn-ghost" data-restore="'+esc(s.path)+'">还原</button><button class="btn btn-danger" data-purge="'+esc(s.path)+'">清空</button></div></div>'}
+el("qList").innerHTML=h;var rs=el("qList").querySelectorAll("button[data-restore]");for(var k=0;k<rs.length;k++)rs[k].addEventListener("click",function(){api("/api/restore","POST",{session:this.getAttribute("data-restore")}).then(function(){loadQuarantine();loadPage(0)})});
+var ps=el("qList").querySelectorAll("button[data-purge]");for(var m=0;m<ps.length;m++)ps[m].addEventListener("click",function(){if(!confirm("永久删除这些隔离文件？不可恢复！"))return;api("/api/purge","POST",{session:this.getAttribute("data-purge")}).then(function(){loadQuarantine()})})})}
 
-// 事件绑定
-el("scanBtn").addEventListener("click", startScan);
-el("prevBtn").addEventListener("click", function(){ loadPage(Math.max(0, st.offset - st.limit)); });
-el("nextBtn").addEventListener("click", function(){ loadPage(st.offset + st.limit); });
-function applyFilters(){ st.filter = el("filter").value; st.minKB = Number(el("minGroupSize").value) || 0; loadPage(0); }
-el("filterBtn").addEventListener("click", applyFilters);
-el("clearFilterBtn").addEventListener("click", function(){ el("filter").value = ""; st.filter = ""; el("minGroupSize").value = "0"; st.minKB = 0; loadPage(0); });
-el("filter").addEventListener("keydown", function(e){ if (e.key === "Enter") { applyFilters(); } });
-el("allBtn").addEventListener("click", function(){ api("/api/select", "POST", { mode: "all" }).then(function(d){ if(d.ok){ st.selectedNow=d.selectedNow; loadPage(st.offset);} }); });
-el("noneBtn").addEventListener("click", function(){ api("/api/select", "POST", { mode: "none" }).then(function(d){ if(d.ok){ st.selectedNow=d.selectedNow; loadPage(st.offset);} }); });
-el("qBtn").addEventListener("click", function(){
-  if (!confirm("把勾选的文件移入隔离区？（可一键还原）")) return;
-  api("/api/quarantine", "POST", { paths: [] }).then(function(d){
-    if (!d.ok) { alert("失败: " + d.error); return; }
-    st.selectedNow = d.selectedNow; updateSel(); loadPage(st.offset);
-  });
-});
-el("delBtn").addEventListener("click", function(){
-  if (!confirm("永久删除勾选的文件？不可恢复！建议改用「移入隔离区」。")) return;
-  if (!confirm("再次确认：真的要永久删除吗？")) return;
-  api("/api/delete", "POST", { confirm: true, paths: [] }).then(function(d){
-    if (!d.ok) { alert("失败: " + d.error); return; }
-    st.selectedNow = d.selectedNow; updateSel(); loadPage(st.offset);
-  });
-});
-el("expBtn").addEventListener("click", function(){ window.location = "/api/export?t=" + T; });
-el("qShowBtn").addEventListener("click", loadQuarantine);
-el("stopBtn").addEventListener("click", function(){ if (confirm("关闭本地服务？")) api("/api/stop").then(function(){ document.body.innerHTML = "<div style='padding:60px;text-align:center;font-size:18px;color:var(--text-secondary)'>服务已停止，可以关闭此页面。</div>"; }); });
+var browseCurrentDir='';
+function openBrowseModal(){el('browseModal').classList.add('active');var current=el('path').value.split(';')[0].trim()||'';loadBrowse(current)}
+function loadBrowse(dir){api('/api/browse?dir='+encodeURIComponent(dir)).then(function(d){if(!d.ok){el('browsePath').textContent='错误：'+d.error;return}browseCurrentDir=d.current;el('browsePath').textContent=d.current;var h='';for(var i=0;i<d.items.length;i++){var item=d.items[i];var icon=item.isDir?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>';var cls=item.isParent?'dir-item parent':'dir-item';var sizeText=item.isDir?'':fmt(item.size);h+='<div class="'+cls+'" data-path="'+esc(item.path)+'" data-isdir="'+item.isDir+'">'+icon+'<span class="name">'+esc(item.name)+'</span><span class="size">'+sizeText+'</span></div>'}
+el('browseList').innerHTML=h||'<div style="color:var(--text-secondary);text-align:center;padding:20px">空目录</div>';var items=el('browseList').querySelectorAll('.dir-item');for(var j=0;j<items.length;j++){items[j].addEventListener('click',function(){var p=this.getAttribute('data-path');var isDir=this.getAttribute('data-isdir')==='true';if(isDir){loadBrowse(p)}});items[j].addEventListener('dblclick',function(){var p=this.getAttribute('data-path');var isDir=this.getAttribute('data-isdir')==='true';if(isDir){selectBrowseDir(p)}})}})}
+function selectBrowseDir(dir){var current=el('path').value.trim();if(current&&!current.endsWith(';')){current+='; '}el('path').value=current+dir;el('browseModal').classList.remove('active')}
 
-// 初始化
-api("/api/config").then(function(c){
-  if (!c.ok) return;
-  el("path").value = c.basePath || "";
-  if (c.strategy) el("strategy").value = c.strategy;
-  if (c.verify) el("verify").value = c.verify;
-  if (c.headKB) el("headKB").value = String(c.headKB);
-  if (c.detectLinks === false) el("links").checked = false;
-  showProgress({ phase: "idle", message: "空闲", elapsedSec: 0, percent: 0 });
-});
+el('browseBtn').addEventListener('click',openBrowseModal);
+el('browseClose').addEventListener('click',function(){el('browseModal').classList.remove('active')});
+el('browseCancel').addEventListener('click',function(){el('browseModal').classList.remove('active')});
+el('browseSelect').addEventListener('click',function(){selectBrowseDir(browseCurrentDir)});
+el('browseModal').addEventListener('click',function(e){if(e.target===this){el('browseModal').classList.remove('active')}});
+
+el("scanBtn").addEventListener("click",startScan);
+el("stopScanBtn").addEventListener("click",stopScan);
+el("prevBtn").addEventListener("click",function(){loadPage(Math.max(0,st.offset-st.limit))});
+el("nextBtn").addEventListener("click",function(){loadPage(st.offset+st.limit)});
+function applyFilters(){st.filter=el("filter").value;st.minKB=Number(el("minGroupSize").value)||0;st.filterExt=el("filterExt").value;loadPage(0)}
+el("filterBtn").addEventListener("click",applyFilters);
+el("clearFilterBtn").addEventListener("click",function(){el("filter").value="";st.filter="";el("minGroupSize").value="0";st.minKB=0;el("filterExt").value="";st.filterExt="";loadPage(0)});
+el("filter").addEventListener("keydown",function(e){if(e.key==="Enter"){applyFilters()}});
+el("allBtn").addEventListener("click",function(){api("/api/select","POST",{mode:"all"}).then(function(d){if(d.ok){st.selectedNow=d.selectedNow;loadPage(st.offset)}})});
+el("noneBtn").addEventListener("click",function(){api("/api/select","POST",{mode:"none"}).then(function(d){if(d.ok){st.selectedNow=d.selectedNow;loadPage(st.offset)}})});
+el("qBtn").addEventListener("click",function(){if(!confirm("把勾选的文件移入隔离区？（可一键还原）"))return;api("/api/quarantine","POST",{paths:[]}).then(function(d){if(!d.ok){alert("失败: "+d.error);return}st.selectedNow=d.selectedNow;updateSel();loadPage(st.offset)})});
+el("delBtn").addEventListener("click",function(){if(!confirm("永久删除勾选的文件？不可恢复！建议改用「移入隔离区」。"))return;if(!confirm("再次确认：真的要永久删除吗？"))return;api("/api/delete","POST",{confirm:true,paths:[]}).then(function(d){if(!d.ok){alert("失败: "+d.error);return}st.selectedNow=d.selectedNow;updateSel();loadPage(st.offset)})});
+el("expBtn").addEventListener("click",function(){window.location="/api/export?t="+T});
+el("qShowBtn").addEventListener("click",loadQuarantine);
+el("stopBtn").addEventListener("click",function(){if(confirm("关闭本地服务？"))api("/api/stop").then(function(){document.body.innerHTML="<div style='padding:60px;text-align:center;font-size:18px;color:var(--text-secondary)'>服务已停止，可以关闭此页面。</div>"})});
+
+api("/api/config").then(function(c){if(!c.ok)return;el("path").value=c.basePath||"";if(c.strategy)el("strategy").value=c.strategy;if(c.verify)el("verify").value=c.verify;if(c.headKB)el("headKB").value=String(c.headKB);if(c.detectLinks===false)el("links").checked=false;showProgress({phase:"idle",message:"空闲",elapsedSec:0,percent:0})});
 </script>
 </body>
 </html>
