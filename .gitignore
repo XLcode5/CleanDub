@@ -37,3 +37,4 @@ $RECYCLE.BIN/
 # 测试数据
 _test/
 _testdata/
+_build/
