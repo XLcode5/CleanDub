@@ -24,10 +24,8 @@ public class MainForm : Form
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CleanDub", "settings.json");
 
     // Chrome
-    private Panel _sidebar = null!;
     private Panel _content = null!;
     private Label _lblPageTitle = null!;
-    private readonly List<MacNavItem> _navItems = new();
     private readonly List<Control> _pages = new();
     private int _activeNav;
 
@@ -99,92 +97,7 @@ public class MainForm : Form
     // ==================== 框架 UI ====================
     private void BuildChrome()
     {
-        // ---- 侧栏（纯色背景） ----
-        _sidebar = new Panel { Width = 212, Dock = DockStyle.Left, BackColor = MacTheme.SidebarBg };
-        Controls.Add(_sidebar);
-
-        var logo = new Label
-        {
-            Text = "CleanDub",
-            Font = MacTheme.F(14f, FontStyle.Bold),
-            ForeColor = MacTheme.Ink,
-            BackColor = Color.Transparent,
-            Location = new Point(18, 22),
-            Size = new Size(170, 26)
-        };
-        _sidebar.Controls.Add(logo);
-
-        var logoSub = new Label
-        {
-            Text = "重复文件清理 · v0.5.0",
-            Font = MacTheme.F(8f),
-            ForeColor = MacTheme.Ink3,
-            BackColor = Color.Transparent,
-            Location = new Point(19, 48),
-            Size = new Size(170, 16),
-            Name = "muted"
-        };
-        _sidebar.Controls.Add(logoSub);
-
-        string[] names = { "扫描", "历史", "隔离区" };
-        string[] icons = { "search", "clock", "box" };
-        for (int i = 0; i < names.Length; i++)
-        {
-            var nav = new MacNavItem
-            {
-                Label = names[i],
-                IconName = icons[i],
-                Location = new Point(10, 84 + i * 36),
-                Size = new Size(192, 30),
-                Tag = i
-            };
-            nav.Click += (s, e) => SwitchNav((int)((Control)s!).Tag!);
-            _navItems.Add(nav);
-            _sidebar.Controls.Add(nav);
-        }
-
-        // 侧栏底部：外观切换
-        var bottom = new Panel { Height = 48, Dock = DockStyle.Bottom, BackColor = Color.Transparent };
-        var themeIcon = new Label
-        {
-            Text = "\U0001F319",
-            Font = MacTheme.F(10f),
-            ForeColor = MacTheme.Ink2,
-            BackColor = Color.Transparent,
-            Location = new Point(22, 13),
-            Size = new Size(20, 20),
-            TextAlign = ContentAlignment.MiddleCenter,
-            Name = "themeIcon"
-        };
-        var themeLbl = new Label
-        {
-            Text = "外观",
-            Font = MacTheme.F(9f),
-            ForeColor = MacTheme.Ink2,
-            BackColor = Color.Transparent,
-            Location = new Point(46, 14),
-            Size = new Size(60, 20),
-            Name = "muted"
-        };
-        var themeToggle = new CheckBox { Location = new Point(146, 12), Name = "themeToggle", Text = "", FlatStyle = FlatStyle.Flat, AutoSize = true };
-        themeToggle.Checked = _settings.DarkTheme;
-        themeToggle.CheckedChanged += (s, e) =>
-        {
-            _settings.DarkTheme = themeToggle.Checked;
-            SaveSettings();
-            MacTheme.IsDark = themeToggle.Checked;
-            ApplyTheme();
-        };
-        bottom.Controls.Add(themeIcon);
-        bottom.Controls.Add(themeLbl);
-        bottom.Controls.Add(themeToggle);
-        _sidebar.Controls.Add(bottom);
-
-        // ---- 内容区 ----
-        _content = new Panel { Dock = DockStyle.Fill, BackColor = MacTheme.WindowBg };
-        Controls.Add(_content);
-        _content.BringToFront();
-
+        // ---- 顶部标题栏（原生标题栏已足够，此处仅保留页面标题） ----
         _lblPageTitle = new Label
         {
             Text = "扫描",
@@ -194,10 +107,36 @@ public class MainForm : Form
             Location = new Point(24, 12),
             Size = new Size(300, 26)
         };
-        _content.Controls.Add(_lblPageTitle);
+        Controls.Add(_lblPageTitle);
 
-        // ---- Windows 原生标题栏（FormBorderStyle.Sizable 自带） ----
-        // 无需自定义 CaptionButtons
+        // ---- 内容区 ----
+        _content = new Panel { Dock = DockStyle.Fill, BackColor = MacTheme.WindowBg, Padding = new Padding(24, 46, 24, 18) };
+        Controls.Add(_content);
+        _content.BringToFront();
+
+        // ---- 底部导航 Tab ----
+        var bottomNav = new Panel { Height = 40, Dock = DockStyle.Bottom, BackColor = MacTheme.SidebarBg };
+        string[] names = { "扫描", "历史", "隔离区" };
+        string[] icons = { "🔍", "🕐", "📦" };
+        for (int i = 0; i < names.Length; i++)
+        {
+            var nav = new LinkLabel
+            {
+                Text = $"{icons[i]} {names[i]}",
+                Font = MacTheme.F(9.5f),
+                LinkColor = MacTheme.Ink2,
+                ActiveLinkColor = MacTheme.Accent,
+                VisitedLinkColor = MacTheme.Ink2,
+                Location = new Point(24 + i * 100, 10),
+                Size = new Size(90, 24),
+                Tag = i,
+                TextAlign = ContentAlignment.MiddleCenter
+            };
+            nav.Click += (s, e) => SwitchNav((int)((Control)s!).Tag!);
+            bottomNav.Controls.Add(nav);
+        }
+        Controls.Add(bottomNav);
+        bottomNav.BringToFront();
     }
 
     private void SwitchNav(int index)
@@ -205,8 +144,6 @@ public class MainForm : Form
         _activeNav = index;
         string[] titles = { "扫描", "历史", "隔离区" };
         _lblPageTitle.Text = titles[index];
-        for (int i = 0; i < _navItems.Count; i++)
-            _navItems[i].Selected = i == index;
         for (int i = 0; i < _pages.Count; i++)
             _pages[i].Visible = i == index;
         if (index == 1) LoadHistory();
@@ -257,7 +194,7 @@ public class MainForm : Form
         page.Controls.Add(statsRow);
 
         // ---- 扫描设置卡片 ----
-        var card = new Panel { Location = new Point(24, 142), Size = new Size(700, 196), BorderStyle = BorderStyle.FixedSingle, BackColor = MacTheme.WindowBg };
+        var card = new Panel { Location = new Point(24, 46), Size = new Size(700, 196), BorderStyle = BorderStyle.FixedSingle, BackColor = MacTheme.CardFace };
         page.Controls.Add(card);
 
         int cx = 22; // 卡片内左边距
@@ -821,7 +758,6 @@ public class MainForm : Form
         _content.BackColor = MacTheme.WindowBg;
         _lblPageTitle.ForeColor = MacTheme.Ink;
         ApplyThemeRecursive(this);
-        _sidebar.Invalidate(true); // 纯色侧栏随主题切换
         // 原生标题栏，无需 DWM 暗色模式同步
         Invalidate(true);
     }
