@@ -125,57 +125,6 @@ public class CaptionButtons : Control
     }
 }
 
-// ==================== 毛玻璃侧栏面板（壁纸取样模糊 + 主题色调层） ====================
-public class FrostedPanel : Panel
-{
-    public FrostedPanel()
-    {
-        SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
-                 ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
-        DoubleBuffered = true;
-    }
-
-    protected override void OnPaintBackground(PaintEventArgs e)
-    {
-        var g = e.Graphics;
-        var rect = ClientRectangle;
-        var wallpaper = Frosted.BlurredWallpaper;
-
-        if (wallpaper != null)
-        {
-            // 按窗口在屏幕上的位置，从模糊壁纸中裁剪对应区域（Mica 式桌面取样）
-            var origin = PointToScreen(Point.Empty);
-            var screen = Screen.FromControl(this).Bounds;
-            float sx = (float)wallpaper.Width / screen.Width;
-            float sy = (float)wallpaper.Height / screen.Height;
-            float sw = rect.Width * sx, sh = rect.Height * sy;
-            var src = new RectangleF(
-                Math.Clamp((origin.X - screen.X) * sx, 0, Math.Max(0, wallpaper.Width - sw)),
-                Math.Clamp((origin.Y - screen.Y) * sy, 0, Math.Max(0, wallpaper.Height - sh)),
-                sw, sh);
-            g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-            g.PixelOffsetMode = PixelOffsetMode.Half;
-            g.DrawImage(wallpaper, rect, src, GraphicsUnit.Pixel);
-        }
-        else
-        {
-            // 壁纸不可用：回退为柔和纵向渐变
-            using var br = new LinearGradientBrush(rect,
-                MacTheme.IsDark ? Color.FromArgb(48, 48, 52) : Color.FromArgb(240, 240, 245),
-                MacTheme.IsDark ? Color.FromArgb(30, 30, 33) : Color.FromArgb(226, 226, 233),
-                LinearGradientMode.Vertical);
-            g.FillRectangle(br, rect);
-        }
-
-        // 主题色调层：保证文字可读，呈现"着色玻璃"质感
-        using (var tint = new SolidBrush(MacTheme.FrostTint))
-            g.FillRectangle(tint, rect);
-
-        // 右缘分隔线
-        using (var pen = new Pen(MacTheme.Hairline, 1f))
-            g.DrawLine(pen, rect.Right - 1, 0, rect.Right - 1, rect.Bottom);
-    }
-}
 // ==================== macOS 圆角按钮 ====================
 public enum MacBtnKind { Normal, Primary, Destructive, DangerFill }
 
@@ -477,7 +426,6 @@ public class MacCard : Panel
         using (var bg = new SolidBrush(MacTheme.WindowBg))
             g.FillRectangle(bg, ClientRectangle);
         var face = FaceRect;
-        Gfx.CardShadow(g, face, Radius);
         using (var fb = new SolidBrush(MacTheme.CardFace))
             Gfx.FillRounded(g, fb, face, Radius);
         if (!MacTheme.IsDark)

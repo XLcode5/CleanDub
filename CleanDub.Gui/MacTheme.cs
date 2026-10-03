@@ -7,38 +7,36 @@ using System.Text;
 
 namespace CleanDub.Gui;
 
-/// <summary>macOS 风格主题：配色 / 字体 / DWM 窗口集成</summary>
+/// <summary>CleanDub 主题：Knowledge Base 配色 / 字体</summary>
 public static class MacTheme
 {
     public static bool IsDark { get; set; }
 
-    // ==================== Palette ====================
-    public static Color WindowBg   => IsDark ? Color.FromArgb(30, 30, 32)     : Color.FromArgb(245, 245, 247);
-    public static Color SidebarBg  => IsDark ? Color.FromArgb(38, 38, 41)     : Color.FromArgb(232, 232, 237);
-    public static Color CardFace   => IsDark ? Color.FromArgb(44, 44, 47)     : Color.White;
-    public static Color CardHover  => IsDark ? Color.FromArgb(52, 52, 56)     : Color.FromArgb(250, 250, 252);
-    public static Color Ink        => IsDark ? Color.FromArgb(245, 245, 247)  : Color.FromArgb(29, 29, 31);
-    public static Color Ink2       => IsDark ? Color.FromArgb(152, 152, 157)  : Color.FromArgb(110, 110, 115);
-    public static Color Ink3       => IsDark ? Color.FromArgb(110, 110, 115)  : Color.FromArgb(155, 155, 160);
+    // ==================== Palette (Knowledge Base) ====================
+    // 浅色模式
+    public static Color WindowBg   => IsDark ? Color.FromArgb(13, 17, 23)      : Color.FromArgb(248, 250, 252);
+    public static Color SidebarBg  => IsDark ? Color.FromArgb(22, 27, 34)      : Color.FromArgb(234, 239, 243);
+    public static Color CardFace   => IsDark ? Color.FromArgb(22, 27, 34)      : Color.White;
+    public static Color CardHover  => IsDark ? Color.FromArgb(36, 41, 49)      : Color.FromArgb(250, 250, 252);
+    public static Color Ink        => IsDark ? Color.FromArgb(230, 237, 243)   : Color.FromArgb(30, 41, 59);
+    public static Color Ink2       => IsDark ? Color.FromArgb(139, 148, 158)   : Color.FromArgb(71, 85, 105);
+    public static Color Ink3       => IsDark ? Color.FromArgb(110, 118, 129)   : Color.FromArgb(100, 116, 139);
 
-    public static Color Accent     => IsDark ? Color.FromArgb(10, 132, 255)   : Color.FromArgb(0, 122, 255);
-    public static Color AccentDown => IsDark ? Color.FromArgb(8, 110, 220)    : Color.FromArgb(0, 100, 220);
-    public static Color Danger     => IsDark ? Color.FromArgb(255, 69, 58)    : Color.FromArgb(255, 59, 48);
-    public static Color DangerDown => IsDark ? Color.FromArgb(220, 55, 45)    : Color.FromArgb(215, 45, 36);
-    public static Color Success    => IsDark ? Color.FromArgb(48, 209, 88)    : Color.FromArgb(40, 180, 80);
-    public static Color Warning    => Color.FromArgb(255, 159, 10);
-    public static Color Purple     => IsDark ? Color.FromArgb(191, 90, 242)   : Color.FromArgb(175, 82, 222);
+    public static Color Accent     => IsDark ? Color.FromArgb(88, 166, 255)    : Color.FromArgb(37, 99, 235);
+    public static Color AccentDown => IsDark ? Color.FromArgb(56, 139, 253)    : Color.FromArgb(29, 78, 216);
+    public static Color Danger     => IsDark ? Color.FromArgb(248, 81, 73)     : Color.FromArgb(220, 38, 38);
+    public static Color DangerDown => IsDark ? Color.FromArgb(218, 54, 51)     : Color.FromArgb(185, 28, 28);
+    public static Color Success    => IsDark ? Color.FromArgb(63, 185, 80)     : Color.FromArgb(22, 163, 74);
+    public static Color Warning    => Color.FromArgb(217, 119, 6);
+    public static Color Purple     => IsDark ? Color.FromArgb(191, 90, 242)    : Color.FromArgb(175, 82, 222);
 
-    public static Color Separator  => IsDark ? Color.FromArgb(28, 255, 255, 255) : Color.FromArgb(20, 0, 0, 0);
-    public static Color Hairline   => IsDark ? Color.FromArgb(46, 255, 255, 255) : Color.FromArgb(38, 0, 0, 0);
-    public static Color SelPill    => IsDark ? Color.FromArgb(28, 255, 255, 255) : Color.FromArgb(14, 0, 0, 0);
-    public static Color HoverPill  => IsDark ? Color.FromArgb(16, 255, 255, 255) : Color.FromArgb(8, 0, 0, 0);
-    public static Color TrackFill  => IsDark ? Color.FromArgb(20, 255, 255, 255) : Color.FromArgb(12, 0, 0, 0);
-    public static Color RowSel     => IsDark ? Color.FromArgb(45, 10, 132, 255)  : Color.FromArgb(28, 0, 122, 255);
-    public static Color FocusRing  => IsDark ? Color.FromArgb(70, 10, 132, 255)  : Color.FromArgb(60, 0, 122, 255);
-
-    /// <summary>毛玻璃色调层：覆盖在模糊壁纸之上，保证文字可读</summary>
-    public static Color FrostTint  => IsDark ? Color.FromArgb(203, 26, 26, 28)   : Color.FromArgb(192, 244, 244, 248);
+    public static Color Separator  => IsDark ? Color.FromArgb(48, 54, 61)      : Color.FromArgb(226, 232, 240);
+    public static Color Hairline   => IsDark ? Color.FromArgb(48, 54, 61)      : Color.FromArgb(226, 232, 240);
+    public static Color SelPill    => IsDark ? Color.FromArgb(56, 139, 253, 40) : Color.FromArgb(37, 99, 235, 20);
+    public static Color HoverPill  => IsDark ? Color.FromArgb(177, 186, 196, 12) : Color.FromArgb(31, 35, 40, 8);
+    public static Color TrackFill  => IsDark ? Color.FromArgb(48, 54, 61)      : Color.FromArgb(234, 239, 243);
+    public static Color RowSel     => IsDark ? Color.FromArgb(56, 139, 253, 30) : Color.FromArgb(37, 99, 235, 15);
+    public static Color FocusRing  => IsDark ? Color.FromArgb(88, 166, 255, 60) : Color.FromArgb(37, 99, 235, 50);
 
     // ==================== Fonts ====================
     private static FontFamily? _ui;
@@ -207,20 +205,6 @@ public static class Gfx
     {
         using var path = RoundedRect(r, radius);
         g.DrawPath(pen, path);
-    }
-
-    /// <summary>卡片柔和投影（三层递减透明度叠加）</summary>
-    public static void CardShadow(Graphics g, RectangleF face, float radius)
-    {
-        int baseAlpha = MacTheme.IsDark ? 26 : 9;
-        for (int i = 3; i >= 1; i--)
-        {
-            var r = face;
-            r.Inflate(i * 0.7f, i * 0.7f);
-            r.Offset(0, i * 1.1f);
-            using var b = new SolidBrush(Color.FromArgb(baseAlpha, 0, 0, 0));
-            FillRounded(g, b, r, radius + i);
-        }
     }
 
     public static void Smooth(Graphics g)

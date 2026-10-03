@@ -32,26 +32,26 @@ public class MainForm : Form
     private int _activeNav;
 
     // 扫描页
-    private MacTextBox _txtPath = null!;
-    private MacSegmented _segStrategy = null!;
-    private MacSegmented _segVerify = null!;
-    private MacToggle _tglRecurse = null!;
-    private MacToggle _tglLinks = null!;
-    private MacButton _btnScan = null!;
-    private MacButton _btnStop = null!;
-    private MacProgressBar _progress = null!;
+    private TextBox _txtPath = null!;
+    private ComboBox _segStrategy = null!;
+    private ComboBox _segVerify = null!;
+    private CheckBox _tglRecurse = null!;
+    private CheckBox _tglLinks = null!;
+    private Button _btnScan = null!;
+    private Button _btnStop = null!;
+    private ProgressBar _progress = null!;
     private Label _lblStatus = null!;
     private Panel _progressRow = null!;
     private ResultsList _listResults = null!;
-    private MacButton _btnQuarantine = null!;
-    private MacButton _btnExport = null!;
-    private MacButton _btnDelete = null!;
+    private Button _btnQuarantine = null!;
+    private Button _btnExport = null!;
+    private Button _btnDelete = null!;
     private Label _lblSummary = null!;
     private readonly StatCard[] _stats = new StatCard[4];
     private readonly System.Windows.Forms.Timer _progressTimer;
     // 历史页
     private HistoryList _lstHistory = null!;
-    private MacSegmented _segHistoryFilter = null!;
+    private ComboBox _segHistoryFilter = null!;
     private Panel _historyEmpty = null!;
     private List<HistoryItem> _historyAll = new();
 
@@ -60,9 +60,9 @@ public class MainForm : Form
     private QuarantineManager? _qm;
     private Panel _quarEmpty = null!;
     private Label _lblQuarSummary = null!;
-    private MacButton _btnRestore = null!;
-    private MacButton _btnDeleteSelected = null!;
-    private MacButton _btnPurge = null!;
+    private Button _btnRestore = null!;
+    private Button _btnDeleteSelected = null!;
+    private Button _btnPurge = null!;
 
     public MainForm()
     {
@@ -145,11 +145,15 @@ public class MainForm : Form
 
         // 侧栏底部：外观切换
         var bottom = new Panel { Height = 48, Dock = DockStyle.Bottom, BackColor = Color.Transparent };
-        var themeIcon = new MacIconView
+        var themeIcon = new Label
         {
-            IconName = "moon",
-            Location = new Point(22, 15),
-            Size = new Size(16, 16),
+            Text = "\U0001F319",
+            Font = MacTheme.F(10f),
+            ForeColor = MacTheme.Ink2,
+            BackColor = Color.Transparent,
+            Location = new Point(22, 13),
+            Size = new Size(20, 20),
+            TextAlign = ContentAlignment.MiddleCenter,
             Name = "themeIcon"
         };
         var themeLbl = new Label
@@ -162,7 +166,7 @@ public class MainForm : Form
             Size = new Size(60, 20),
             Name = "muted"
         };
-        var themeToggle = new MacToggle { Location = new Point(146, 10), Name = "themeToggle" };
+        var themeToggle = new CheckBox { Location = new Point(146, 12), Name = "themeToggle", Text = "", FlatStyle = FlatStyle.Flat, AutoSize = true };
         themeToggle.Checked = _settings.DarkTheme;
         themeToggle.CheckedChanged += (s, e) =>
         {
@@ -253,61 +257,63 @@ public class MainForm : Form
         page.Controls.Add(statsRow);
 
         // ---- 扫描设置卡片 ----
-        var card = new MacCard { Location = new Point(24, 142), Size = new Size(700, 196) };
+        var card = new Panel { Location = new Point(24, 142), Size = new Size(700, 196), BorderStyle = BorderStyle.FixedSingle, BackColor = MacTheme.WindowBg };
         page.Controls.Add(card);
 
         int cx = 22; // 卡片内左边距
         var lblPath = CardLabel(card, "扫描目录", cx, 16);
 
-        _txtPath = new MacTextBox { Location = new Point(cx, 36), Size = new Size(500, 32) };
-        _txtPath.TextValue = string.IsNullOrWhiteSpace(_settings.DefaultPath)
+        _txtPath = new TextBox { Location = new Point(cx, 36), Size = new Size(500, 32), BorderStyle = BorderStyle.FixedSingle };
+        _txtPath.Text = string.IsNullOrWhiteSpace(_settings.DefaultPath)
             ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
             : _settings.DefaultPath;
         card.Controls.Add(_txtPath);
 
-        var btnBrowse = new MacButton { Text = "浏览…", Location = new Point(508, 37), Size = new Size(84, 30) };
+        var btnBrowse = new Button { Text = "浏览…", Location = new Point(508, 37), Size = new Size(84, 30), FlatStyle = FlatStyle.Flat };
         btnBrowse.Click += (s, e) =>
         {
-            using var dlg = new FolderBrowserDialog { Description = "选择扫描目录", SelectedPath = _txtPath.TextValue, UseDescriptionForTitle = true };
-            if (dlg.ShowDialog() == DialogResult.OK) _txtPath.TextValue = dlg.SelectedPath;
+            using var dlg = new FolderBrowserDialog { Description = "选择扫描目录", SelectedPath = _txtPath.Text, UseDescriptionForTitle = true };
+            if (dlg.ShowDialog() == DialogResult.OK) _txtPath.Text = dlg.SelectedPath;
         };
         card.Controls.Add(btnBrowse);
 
         var lblStrategy = CardLabel(card, "保留策略", cx, 80);
-        _segStrategy = new MacSegmented
+        _segStrategy = new ComboBox
         {
             Location = new Point(cx, 100),
             Size = new Size(430, 30),
-            Items = new[] { "名字最干净", "时间最新", "无后缀原件", "(N) 数字最大" },
-            SelectedIndex = (int)_settings.Strategy
+            DropDownStyle = ComboBoxStyle.DropDownList
         };
+        _segStrategy.Items.AddRange(new object[] { "名字最干净", "时间最新", "无后缀原件", "(N) 数字最大" });
+        _segStrategy.SelectedIndex = (int)_settings.Strategy;
         card.Controls.Add(_segStrategy);
 
         var lblVerify = CardLabel(card, "校验级别", cx + 452, 80);
-        _segVerify = new MacSegmented
+        _segVerify = new ComboBox
         {
             Location = new Point(cx + 452, 100),
             Size = new Size(180, 30),
-            Items = new[] { "全量", "头部", "名称", "大小" },
-            SelectedIndex = (int)_settings.Verify
+            DropDownStyle = ComboBoxStyle.DropDownList
         };
+        _segVerify.Items.AddRange(new object[] { "全量", "头部", "名称", "大小" });
+        _segVerify.SelectedIndex = (int)_settings.Verify;
         card.Controls.Add(_segVerify);
 
         // 选项行
-        _tglRecurse = new MacToggle { Location = new Point(cx, 144), Checked = _settings.Recurse };
+        _tglRecurse = new CheckBox { Location = new Point(cx, 144), Checked = _settings.Recurse, Text = "", FlatStyle = FlatStyle.Flat, AutoSize = true };
         card.Controls.Add(_tglRecurse);
         var lblRecurse = CardLabel(card, "递归子目录", cx + 52, 148, true);
-        _tglLinks = new MacToggle { Location = new Point(cx + 150, 144), Checked = _settings.DetectLinks };
+        _tglLinks = new CheckBox { Location = new Point(cx + 150, 144), Checked = _settings.DetectLinks, Text = "", FlatStyle = FlatStyle.Flat, AutoSize = true };
         card.Controls.Add(_tglLinks);
         var lblLinks = CardLabel(card, "检测硬链接", cx + 202, 148, true);
 
         // 头部哈希大小（内联自原设置页）
         var lblHeadKB = CardLabel(card, "头部哈希(KB)", cx + 320, 148, true);
-        var txtHeadKB = new MacTextBox { Location = new Point(cx + 410, 141), Size = new Size(60, 28) };
-        txtHeadKB.TextValue = _settings.HeadKB.ToString();
-        txtHeadKB.ValueChanged += (s, e) =>
+        var txtHeadKB = new TextBox { Location = new Point(cx + 410, 141), Size = new Size(60, 28), BorderStyle = BorderStyle.FixedSingle };
+        txtHeadKB.Text = _settings.HeadKB.ToString();
+        txtHeadKB.TextChanged += (s, e) =>
         {
-            if (int.TryParse(txtHeadKB.TextValue.Trim(), out int kb) && kb >= 1 && kb <= 4096)
+            if (int.TryParse(txtHeadKB.Text.Trim(), out int kb) && kb >= 1 && kb <= 4096)
             {
                 _settings.HeadKB = kb;
                 SaveSettings();
@@ -337,30 +343,34 @@ public class MainForm : Form
             SaveSettings();
         };
 
-        _btnScan = new MacButton
+        _btnScan = new Button
         {
             Text = "开始扫描",
-            Kind = MacBtnKind.Primary,
             Location = new Point(430, 141),
-            Size = new Size(110, 34)
+            Size = new Size(110, 34),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = MacTheme.Accent,
+            ForeColor = Color.White
         };
         _btnScan.Click += async (s, e) => await StartScan();
         card.Controls.Add(_btnScan);
 
-        _btnStop = new MacButton
+        _btnStop = new Button
         {
             Text = "停止",
-            Kind = MacBtnKind.Destructive,
             Location = new Point(548, 141),
             Size = new Size(76, 34),
-            Enabled = false
+            Enabled = false,
+            FlatStyle = FlatStyle.Flat,
+            BackColor = MacTheme.Danger,
+            ForeColor = Color.White
         };
         _btnStop.Click += (s, e) => { _engine.Stop(); _cts?.Cancel(); };
         card.Controls.Add(_btnStop);
 
         // ---- 进度行 ----
         _progressRow = new Panel { Location = new Point(24, 348), Height = 40, BackColor = Color.Transparent, Visible = false };
-        _progress = new MacProgressBar { Location = new Point(2, 4), Size = new Size(600, 6) };
+        _progress = new ProgressBar { Location = new Point(2, 4), Size = new Size(600, 6), Style = ProgressBarStyle.Continuous };
         _lblStatus = new Label
         {
             Location = new Point(2, 16),
@@ -404,11 +414,11 @@ public class MainForm : Form
         };
         actionRow.Controls.Add(_lblSummary);
 
-        _btnDelete = new MacButton { Text = "永久删除", Kind = MacBtnKind.DangerFill, Enabled = false, Size = new Size(96, 32) };
+        _btnDelete = new Button { Text = "永久删除", Enabled = false, Size = new Size(96, 32), FlatStyle = FlatStyle.Flat, BackColor = MacTheme.Danger, ForeColor = Color.White };
         _btnDelete.Click += async (s, e) => await RunCleanup(true);
-        _btnQuarantine = new MacButton { Text = "移入隔离区", Kind = MacBtnKind.Primary, Enabled = false, Size = new Size(110, 32) };
+        _btnQuarantine = new Button { Text = "移入隔离区", Enabled = false, Size = new Size(110, 32), FlatStyle = FlatStyle.Flat, BackColor = MacTheme.Accent, ForeColor = Color.White };
         _btnQuarantine.Click += async (s, e) => await RunCleanup(false);
-        _btnExport = new MacButton { Text = "导出 CSV", Kind = MacBtnKind.Normal, Enabled = false, Size = new Size(96, 32) };
+        _btnExport = new Button { Text = "导出 CSV", Enabled = false, Size = new Size(96, 32), FlatStyle = FlatStyle.Flat };
         _btnExport.Click += async (s, e) => await ExportCsv();
         actionRow.Controls.Add(_btnDelete);
         actionRow.Controls.Add(_btnQuarantine);
@@ -485,17 +495,18 @@ public class MainForm : Form
 
         // ---- 顶栏：类型筛选 + 刷新 ----
         var top = new Panel { Dock = DockStyle.Top, Height = 40, BackColor = Color.Transparent };
-        _segHistoryFilter = new MacSegmented
+        _segHistoryFilter = new ComboBox
         {
             Location = new Point(0, 5),
             Size = new Size(330, 28),
-            Items = new[] { "全部", "扫描", "隔离", "还原", "删除" },
-            SelectedIndex = 0
+            DropDownStyle = ComboBoxStyle.DropDownList
         };
+        _segHistoryFilter.Items.AddRange(new object[] { "全部", "扫描", "隔离", "还原", "删除" });
+        _segHistoryFilter.SelectedIndex = 0;
         _segHistoryFilter.SelectedIndexChanged += (s, e) => ApplyHistoryFilter();
         top.Controls.Add(_segHistoryFilter);
 
-        var btnRefresh = new MacButton { Text = "刷新", Size = new Size(76, 30), Location = new Point(340, 4) };
+        var btnRefresh = new Button { Text = "刷新", Size = new Size(76, 30), Location = new Point(340, 4), FlatStyle = FlatStyle.Flat };
         btnRefresh.Click += (s, e) => LoadHistory();
         top.Controls.Add(btnRefresh);
         top.Resize += (s, e) => btnRefresh.Left = top.Width - btnRefresh.Width - 2;
@@ -508,7 +519,7 @@ public class MainForm : Form
             if (item.LogDir.Length > 0 && Directory.Exists(item.LogDir))
                 Process.Start(new ProcessStartInfo("explorer.exe", $"\"{item.LogDir}\"") { UseShellExecute = true });
             else
-                Toast.Show(_content, "该记录没有关联的日志目录", ToastKind.Info);
+                MessageBox.Show("该记录没有关联的日志目录", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
         };
         page.Controls.Add(_lstHistory);
         _lstHistory.BringToFront();
@@ -522,7 +533,7 @@ public class MainForm : Form
     private Panel BuildHistoryEmpty(Panel page)
     {
         var p = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent, Visible = false };
-        var icon = new MacIconView { IconName = "clock", Size = new Size(40, 40), IconColor = MacTheme.Ink3, Stroke = 1.2f };
+        var icon = new Label { Text = "\U0001F550", Font = MacTheme.F(20f), ForeColor = MacTheme.Ink3, BackColor = Color.Transparent, Size = new Size(40, 40), TextAlign = ContentAlignment.MiddleCenter };
         var t = new Label
         {
             Text = "暂无操作记录",
@@ -541,11 +552,13 @@ public class MainForm : Form
             AutoSize = true,
             Name = "faint"
         };
-        var cta = new MacButton
+        var cta = new Button
         {
             Text = "去扫描",
-            Kind = MacBtnKind.Primary,
-            Size = new Size(110, 32)
+            Size = new Size(110, 32),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = MacTheme.Accent,
+            ForeColor = Color.White
         };
         cta.Click += (s2, e) => SwitchNav(0);
         p.Controls.Add(icon);
@@ -566,7 +579,7 @@ public class MainForm : Form
 
     private void LoadHistory()
     {
-        _historyAll = CleaningLog.Read(_txtPath.TextValue.Trim());
+        _historyAll = CleaningLog.Read(_txtPath.Text.Trim());
         ApplyHistoryFilter();
     }
 
@@ -603,22 +616,22 @@ public class MainForm : Form
             TextAlign = ContentAlignment.MiddleLeft,
             Name = "muted"
         };
-        _btnRestore = new MacButton { Text = "还原选中", Kind = MacBtnKind.Primary, Size = new Size(96, 30), Enabled = false };
+        _btnRestore = new Button { Text = "还原选中", Size = new Size(96, 30), Enabled = false, FlatStyle = FlatStyle.Flat, BackColor = MacTheme.Accent, ForeColor = Color.White };
         _btnRestore.Click += (s, e) => RestoreSelected();
-        _btnDeleteSelected = new MacButton { Text = "删除选中", Kind = MacBtnKind.DangerFill, Size = new Size(96, 30), Enabled = false };
+        _btnDeleteSelected = new Button { Text = "删除选中", Size = new Size(96, 30), Enabled = false, FlatStyle = FlatStyle.Flat, BackColor = MacTheme.Danger, ForeColor = Color.White };
         _btnDeleteSelected.Click += (s, e) => DeleteSelected();
-        _btnPurge = new MacButton { Text = "全部清空", Kind = MacBtnKind.Destructive, Size = new Size(96, 30), Enabled = false };
+        _btnPurge = new Button { Text = "全部清空", Size = new Size(96, 30), Enabled = false, FlatStyle = FlatStyle.Flat, BackColor = MacTheme.Danger, ForeColor = Color.White };
         _btnPurge.Click += (s, e) => PurgeAll();
-        var btnOpen = new MacButton { Text = "打开目录", Size = new Size(88, 30) };
+        var btnOpen = new Button { Text = "打开目录", Size = new Size(88, 30), FlatStyle = FlatStyle.Flat };
         btnOpen.Click += (s, e) =>
         {
             var q = QuarantineDir();
             if (Directory.Exists(q))
                 Process.Start(new ProcessStartInfo("explorer.exe", $"\"{q}\"") { UseShellExecute = true });
             else
-                MacAlert.Info(this, "隔离区为空", "当前扫描目录下还没有隔离区。");
+                MessageBox.Show(this, "当前扫描目录下还没有隔离区。", "隔离区为空", MessageBoxButtons.OK, MessageBoxIcon.Information);
         };
-        var btnRefresh = new MacButton { Text = "刷新", Size = new Size(76, 30) };
+        var btnRefresh = new Button { Text = "刷新", Size = new Size(76, 30), FlatStyle = FlatStyle.Flat };
         btnRefresh.Click += (s, e) => LoadQuarantine();
 
         top.Controls.Add(_btnRestore);
@@ -648,11 +661,11 @@ public class MainForm : Form
         _quarEmpty = EmptyLabelPanel(page, "隔离区为空", "在扫描结果中勾选冗余文件，点击「移入隔离区」后会出现在这里");
     }
 
-    private string QuarantineDir() => Path.Combine(_txtPath.TextValue, "_dedup_quarantine");
+    private string QuarantineDir() => Path.Combine(_txtPath.Text, "_dedup_quarantine");
 
     private void LoadQuarantine()
     {
-        var root = _txtPath.TextValue.Trim();
+        var root = _txtPath.Text.Trim();
         _qm = Directory.Exists(root) ? new QuarantineManager(root) : null;
         var sessions = _qm?.LoadSessions() ?? new List<QuarantineSession>();
         _lstQuarantine.SetSessions(sessions);
@@ -682,9 +695,9 @@ public class MainForm : Form
         if (_qm == null) return;
         var sel = _lstQuarantine.SelectedEntries();
         if (sel.Count == 0) return;
-        if (!MacAlert.Confirm(this, "还原文件",
+        if (MessageBox.Show(this,
                 $"将把 {sel.Count} 个文件还原到原始位置（{FormatSize(_lstQuarantine.SelectedBytes)}）。",
-                "还原", "取消", false))
+                "还原文件", MessageBoxButtons.OKCancel, MessageBoxIcon.Question) != DialogResult.OK)
             return;
 
         int moved = 0; var failures = new List<(string, string)>();
@@ -695,9 +708,9 @@ public class MainForm : Form
             failures.AddRange(r.Failures);
         }
         LoadQuarantine();
-        Toast.Show(_content, $"已还原 {moved} 个文件", moved > 0 ? ToastKind.Success : ToastKind.Error);
+        MessageBox.Show($"已还原 {moved} 个文件", moved > 0 ? "成功" : "错误", MessageBoxButtons.OK, moved > 0 ? MessageBoxIcon.Information : MessageBoxIcon.Error);
         if (failures.Count > 0)
-            MacAlert.Info(this, "部分还原失败", string.Join("\n", failures.Take(5).Select(f => $"{f.Item1}\n  {f.Item2}")));
+            MessageBox.Show(this, string.Join("\n", failures.Take(5).Select(f => $"{f.Item1}\n  {f.Item2}")), "部分还原失败", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     private void DeleteSelected()
@@ -705,9 +718,9 @@ public class MainForm : Form
         if (_qm == null) return;
         var sel = _lstQuarantine.SelectedEntries();
         if (sel.Count == 0) return;
-        if (!MacAlert.Confirm(this, "永久删除",
+        if (MessageBox.Show(this,
                 $"将永久删除隔离区中选中的 {sel.Count} 个文件（{FormatSize(_lstQuarantine.SelectedBytes)}）。\n此操作不可撤销，确定继续吗？",
-                "永久删除", "取消", true))
+                "永久删除", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) != DialogResult.OK)
             return;
 
         int moved = 0; var failures = new List<(string, string)>();
@@ -718,22 +731,22 @@ public class MainForm : Form
             failures.AddRange(r.Failures);
         }
         LoadQuarantine();
-        Toast.Show(_content, $"已永久删除 {moved} 个文件", moved > 0 ? ToastKind.Success : ToastKind.Error);
+        MessageBox.Show($"已永久删除 {moved} 个文件", moved > 0 ? "成功" : "错误", MessageBoxButtons.OK, moved > 0 ? MessageBoxIcon.Information : MessageBoxIcon.Error);
         if (failures.Count > 0)
-            MacAlert.Info(this, "部分删除失败", string.Join("\n", failures.Take(5).Select(f => $"{f.Item1}\n  {f.Item2}")));
+            MessageBox.Show(this, string.Join("\n", failures.Take(5).Select(f => $"{f.Item1}\n  {f.Item2}")), "部分删除失败", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     private void PurgeAll()
     {
         if (_qm == null) return;
-        if (!MacAlert.Confirm(this, "清空隔离区",
+        if (MessageBox.Show(this,
                 "将永久删除隔离区中的全部文件。\n此操作不可撤销，确定继续吗？",
-                "全部清空", "取消", true))
+                "清空隔离区", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) != DialogResult.OK)
             return;
 
         var r = _qm.PurgeAll();
         LoadQuarantine();
-        Toast.Show(_content, $"隔离区已清空（{r.Moved} 个文件）", ToastKind.Success);
+        MessageBox.Show($"隔离区已清空（{r.Moved} 个文件）", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     // ==================== 页面辅助 ====================
@@ -837,12 +850,6 @@ public class MainForm : Form
                 rl.BackColor = MacTheme.WindowBg;
                 rl.RefreshTheme();
                 break;
-            case MacTextBox mtb:
-                mtb.ApplyTheme();
-                break;
-            case MacCard card:
-                card.BackColor = MacTheme.WindowBg;
-                break;
         }
         foreach (Control child in c.Controls)
             ApplyThemeRecursive(child);
@@ -855,10 +862,10 @@ public class MainForm : Form
 
     private async Task StartScan()
     {
-        var path = _txtPath.TextValue.Trim();
+        var path = _txtPath.Text.Trim();
         if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
         {
-            MacAlert.Info(this, "目录无效", "请选择一个存在的扫描目录。");
+            MessageBox.Show(this, "请选择一个存在的扫描目录。", "目录无效", MessageBoxButtons.OK, MessageBoxIcon.Information);
             return;
         }
 
@@ -879,7 +886,7 @@ public class MainForm : Form
                 : p.PhaseLabel;
             if (p.Phase == ScanPhase.Completed)
             {
-                _progress.Indeterminate = false;
+                _progress.Style = ProgressBarStyle.Continuous;
                 _progress.Value = 100;
             }
         });
@@ -892,7 +899,7 @@ public class MainForm : Form
         }
         catch (Exception ex)
         {
-            MacAlert.Info(this, "扫描出错", ex.Message);
+            MessageBox.Show(this, ex.Message, "扫描出错", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
         finally
         {
@@ -937,7 +944,7 @@ public class MainForm : Form
             };
             if (span > 0)
             {
-                _progress.Indeterminate = false;
+                _progress.Style = ProgressBarStyle.Continuous;
                 _progress.Value = (int)(basePct + pct / 100.0 * span);
             }
             if (msg.Length > 0)
@@ -973,7 +980,7 @@ public class MainForm : Form
         _progressRow.Visible = busy;
         if (busy)
         {
-            _progress.Indeterminate = true;
+            _progress.Style = ProgressBarStyle.Marquee;
             _btnQuarantine.Enabled = _btnDelete.Enabled = _btnExport.Enabled = false;
         }
         _lblStatus.Text = busy ? "正在扫描…" : "";
@@ -983,7 +990,7 @@ public class MainForm : Form
     /// <summary>对勾选文件直接执行清理（不再重跑引擎扫描）。permanent=true 永久删除，false 移入隔离区。</summary>
     private async Task RunCleanup(bool permanent)
     {
-        var root = _txtPath.TextValue.Trim();
+        var root = _txtPath.Text.Trim();
         var selected = _listResults.SelectedVictims();
         if (selected.Count == 0 || !Directory.Exists(root)) return;
 
@@ -993,7 +1000,7 @@ public class MainForm : Form
             ? $"将永久删除勾选的 {selected.Count} 个文件（{FormatSize(bytes)}）。\n此操作不可撤销，确定继续吗？"
             : $"将把勾选的 {selected.Count} 个文件移入隔离区（{FormatSize(bytes)}），可随时还原。\n确定继续吗？";
 
-        if (!MacAlert.Confirm(this, title, msg, permanent ? "永久删除" : "移入隔离区", "取消", permanent))
+        if (MessageBox.Show(this, msg, title, MessageBoxButtons.OKCancel, permanent ? MessageBoxIcon.Warning : MessageBoxIcon.Question) != DialogResult.OK)
             return;
 
         _btnQuarantine.Enabled = _btnDelete.Enabled = false;
@@ -1039,12 +1046,15 @@ public class MainForm : Form
         _listResults.RemoveProcessed(donePaths);
         RefreshStatsFromList();
         UpdateActionState();
-        Toast.Show(_content,
+        MessageBox.Show(
             permanent ? $"已永久删除 {donePaths.Count} 个文件" : $"已移入隔离区 {donePaths.Count} 个文件",
-            failures.Count == 0 ? ToastKind.Success : ToastKind.Info);
+            failures.Count == 0 ? "成功" : "提示",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Information);
         if (failures.Count > 0)
-            MacAlert.Info(this, "部分文件处理失败",
-                string.Join("\n", failures.Take(5).Select(f => $"{f.Path}\n  {f.Reason}")));
+            MessageBox.Show(this,
+                string.Join("\n", failures.Take(5).Select(f => $"{f.Path}\n  {f.Reason}")),
+                "部分文件处理失败", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     /// <summary>清理后按剩余组刷新统计卡片。</summary>
@@ -1068,14 +1078,14 @@ public class MainForm : Form
 
         SetBusy(true);
         var (strategy, verify) = CurrentOptions();
-        var file = await _engine.ExportCsvAsync(_txtPath.TextValue.Trim(), dlg.FileName,
+        var file = await _engine.ExportCsvAsync(_txtPath.Text.Trim(), dlg.FileName,
             strategy, verify, _tglLinks.Checked, _tglRecurse.Checked, _settings.HeadKB);
         SetBusy(false);
 
         if (file != null)
-            MacAlert.Info(this, "导出成功", $"清理计划已保存到：\n{file}");
+            MessageBox.Show(this, $"清理计划已保存到：\n{file}", "导出成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
         else
-            MacAlert.Info(this, "导出失败", "未能生成 CSV 文件，请检查目录权限。");
+            MessageBox.Show(this, "未能生成 CSV 文件，请检查目录权限。", "导出失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
     }
 
     // ==================== 设置持久化 ====================
@@ -1109,7 +1119,7 @@ public class MainForm : Form
 }
 
 // ==================== 统计卡片 ====================
-public class StatCard : MacCard
+public class StatCard : Panel
 {
     private readonly string _label;
     private readonly string _icon;
@@ -1125,7 +1135,7 @@ public class StatCard : MacCard
     public StatCard(string label, string icon, Color tint)
     {
         _label = label; _icon = icon; _tint = tint;
-        Radius = 10f;
+        BackColor = MacTheme.WindowBg;
     }
 
     protected override void OnPaint(PaintEventArgs e)
@@ -1133,7 +1143,14 @@ public class StatCard : MacCard
         base.OnPaint(e);
         var g = e.Graphics;
         Gfx.Smooth(g);
-        var face = FaceRect;
+        var face = new RectangleF(2, 1, Width - 5, Height - 5);
+        using (var fb = new SolidBrush(MacTheme.CardFace))
+            Gfx.FillRounded(g, fb, face, 10f);
+        if (!MacTheme.IsDark)
+        {
+            using var edge = new Pen(Color.FromArgb(18, 0, 0, 0), 1f);
+            Gfx.DrawRounded(g, edge, face, 10f);
+        }
 
         // 图标底块
         var tile = new RectangleF(face.X + 12, face.Y + (face.Height - 34) / 2, 34, 34);
