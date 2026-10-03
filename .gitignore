@@ -28,6 +28,7 @@ build/
 .idea/
 *.suo
 *.user
+*.csproj.user
 
 # 系统文件
 Thumbs.db
@@ -38,3 +39,23 @@ $RECYCLE.BIN/
 _test/
 _testdata/
 _build/
+_fixture_ui/
+
+# .NET 构建产物
+**/bin/
+**/obj/
+*.nupkg
+*.snupkg
+
+# 第三方库（通过 NuGet 恢复，不入库）
+libs/
+
+# 发布产物
+release/
+installer/
+
+# 截图
+*.png
+*.jpg
+*.jpeg
+screenshot*
