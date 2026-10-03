@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CleanDub")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("0.5.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.5.0+2aaedc4c25d0812df9d8e8fd76e5c14891b5cc05")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.5.0+2041aa68ff4563409e423fc2fc993df6e0b4e3b6")]
 [assembly: System.Reflection.AssemblyProductAttribute("CleanDub")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CleanDub")]
 [assembly: System.Reflection.AssemblyVersionAttribute("0.5.0")]
