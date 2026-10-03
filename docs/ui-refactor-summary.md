@@ -13,11 +13,12 @@
 
 | 指标 | 基线 | 重构后 | 变化 |
 |:---|:---|:---|:---|
-| 总代码行数 | 4,537 | 4,096 | **-441 行 (-9.7%)** |
+| **总代码行数** | 4,537 | **3,422** | **-1,115 行 (-24.6%)** |
 | MainForm.cs | 1,826 | 1,453 | **-373 行 (-20.4%)** |
-| MacControls.cs | 731 | 679 | **-52 行 (-7.1%)** |
+| MacControls.cs | 731 | **5** | **-726 行 (-99.3%)** |
 | MacTheme.cs | 411 | 395 | **-16 行 (-3.9%)** |
-| 自定义控件类 | 16 个 | 9 个 | **-44%** |
+| Toast.cs | 112 | **0** | **-112 行 (-100%)** |
+| **自定义控件类** | 16 个 | **0 个** | **-100%** |
 | 导航页数 | 4 页侧栏 | 3 Tab 底部导航 | **深度 -1** |
 | 设置输入位 | 12 个 | 5 个 | **-58%** |
 | 双向同步逻辑 | 200+ 行 | 0 | **-100%** |
@@ -106,6 +107,12 @@
 - 统一为 WinForms 单项目
 - 消除双项目维护负担
 
+### 清理阶段：删除死代码
+**提交**: 0a74615
+
+- `MacControls.cs` 删除 10 个未使用类（CaptionButtons/MacButton/MacToggle/MacSegmented/MacTextBox/MacCard/MacProgressBar/MacNavItem/MacIconView/MacAlert）
+- 删除 `Toast.cs`（Toast.Show 已全部替换为 MessageBox.Show）
+
 ---
 
 ## 三、设计规范落地
@@ -125,19 +132,31 @@
 
 ---
 
-## 四、遗留问题与建议
+## 四、最终文件结构
 
-### 已知问题
-1. **MacControls.cs 还有 679 行**：`MacButton`/`MacNavItem`/`MacAlert` 等类还在，但 MainForm.cs 已不再引用。建议后续删除未使用的类。
-2. **Toast.cs 还在**：`Toast.Show` 已全部替换为 `MessageBox.Show`，但 `Toast.cs` 文件还在。建议删除。
-3. **MacListViews.cs**：`ResultsList`/`HistoryList`/`QuarantineList` 保留，这些是自绘列表，功能复杂无法原生替代。
+```
+CleanDub.Gui/
+├── CleaningLog.cs          92 行   (日志)
+├── MacControls.cs           5 行   (已清空，保留文件避免破坏引用)
+├── MacListViews.cs        392 行   (ResultsList/HistoryList/QuarantineList)
+├── MacTheme.cs            395 行   (配色/字体)
+├── MainForm.cs           1453 行   (主窗口，3 Tab 导航)
+├── Models.cs              304 行   (数据模型)
+├── Program.cs              16 行   (入口)
+├── QuarantineManager.cs   302 行   (隔离区管理)
+└── ScanEngine.cs          351 行   (扫描引擎)
+```
+
+**总计**: 3,422 行，9 个文件
+
+---
+
+## 五、遗留问题与建议
 
 ### 建议下一步
-1. 删除 `MacControls.cs` 中未使用的类（MacButton/MacNavItem/MacAlert/MacCard/MacProgressBar/MacTextBox/MacSegmented/MacToggle/MacIconView）
-2. 删除 `Toast.cs`
-3. 删除 `MacTheme.cs` 中未使用的 `Frosted` 类和 `MacIcons` 类（如果不再需要自绘图标）
-4. 考虑将 `MacTheme` 重命名为 `AppTheme`（去掉 Mac 前缀）
-5. 推送 `refactor/ui-simplify` 分支到 origin，创建 PR 合并到 main
+1. 将 `MacTheme` 重命名为 `AppTheme`（去掉 Mac 前缀）
+2. 考虑删除 `MacControls.cs`（只剩 using 语句，无实际内容）
+3. 推送 `refactor/ui-simplify` 分支到 origin，创建 PR 合并到 main
 
 ---
 
