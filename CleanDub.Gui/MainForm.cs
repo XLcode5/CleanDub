@@ -24,10 +24,9 @@ public class MainForm : Form
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CleanDub", "settings.json");
 
     // Chrome
-    private FrostedPanel _sidebar = null!;
+    private Panel _sidebar = null!;
     private Panel _content = null!;
     private Label _lblPageTitle = null!;
-    private CaptionButtons _caps = null!;
     private readonly List<MacNavItem> _navItems = new();
     private readonly List<Control> _pages = new();
     private int _activeNav;
@@ -94,102 +93,14 @@ public class MainForm : Form
     protected override void OnHandleCreated(EventArgs e)
     {
         base.OnHandleCreated(e);
-        DwmHelper.EnableRoundedCorners(Handle);
-        DwmHelper.EnableShadow(Handle);
-        DwmHelper.EnableMica(Handle);
-        DwmHelper.SetDarkMode(Handle, MacTheme.IsDark);
-    }
-
-    // ==================== 窗口框架（拖拽 / 缩放） ====================
-    private const int WM_NCHITTEST = 0x84;
-    private const int WM_GETMINMAXINFO = 0x24;
-    private const int WM_NCLBUTTONDBLCLK = 0xA3;
-    private const int HTCLIENT = 1, HTCAPTION = 2;
-    private const int HTLEFT = 10, HTRIGHT = 11, HTTOP = 12, HTTOPLEFT = 13,
-                      HTTOPRIGHT = 14, HTBOTTOM = 15, HTBOTTOMLEFT = 16, HTBOTTOMRIGHT = 17;
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct POINT { public int X, Y; }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct MINMAXINFO
-    {
-        public POINT Reserved, MaxSize, MaxPosition, MinTrackSize, MaxTrackSize;
-    }
-
-    protected override void WndProc(ref Message m)
-    {
-        // 标题栏双击切换最大化（先拦截，避免系统默认处理冲突）
-        if (m.Msg == WM_NCLBUTTONDBLCLK && m.WParam.ToInt32() == HTCAPTION)
-        {
-            ToggleMaximize();
-            m.Result = IntPtr.Zero;
-            return;
-        }
-
-        base.WndProc(ref m);
-
-        // 最大化时对齐工作区，不遮挡任务栏
-        if (m.Msg == WM_GETMINMAXINFO)
-        {
-            var screen = Screen.FromHandle(Handle);
-            var wa = screen.WorkingArea;
-            var bounds = screen.Bounds;
-            var mmi = Marshal.PtrToStructure<MINMAXINFO>(m.LParam);
-            mmi.MaxPosition = new POINT { X = wa.Left - bounds.Left, Y = wa.Top - bounds.Top };
-            mmi.MaxSize = new POINT { X = wa.Width, Y = wa.Height };
-            Marshal.StructureToPtr(mmi, m.LParam, true);
-            m.Result = IntPtr.Zero;
-            return;
-        }
-
-        if (m.Msg != WM_NCHITTEST || WindowState == FormWindowState.Maximized) return;
-        if ((int)m.Result != HTCLIENT) return;
-
-        var pos = PointToClient(new Point((int)(m.LParam.ToInt64() & 0xFFFF), (int)(m.LParam.ToInt64() >> 16)));
-        const int grip = 7;
-
-        // 边缘缩放
-        bool l = pos.X <= grip, r = pos.X >= Width - grip;
-        bool t = pos.Y <= grip, b = pos.Y >= Height - grip;
-        if (t && l) { m.Result = (IntPtr)HTTOPLEFT; return; }
-        if (t && r) { m.Result = (IntPtr)HTTOPRIGHT; return; }
-        if (b && l) { m.Result = (IntPtr)HTBOTTOMLEFT; return; }
-        if (b && r) { m.Result = (IntPtr)HTBOTTOMRIGHT; return; }
-        if (l) { m.Result = (IntPtr)HTLEFT; return; }
-        if (r) { m.Result = (IntPtr)HTRIGHT; return; }
-        if (t) { m.Result = (IntPtr)HTTOP; return; }
-        if (b) { m.Result = (IntPtr)HTBOTTOM; return; }
-
-        // 顶部 38px 标题栏区域可拖拽（避开侧栏控件区域）
-        if (pos.Y <= 38 && pos.X > _sidebar.Width + 8)
-            m.Result = (IntPtr)HTCAPTION;
-    }
-
-    private void ToggleMaximize() =>
-        WindowState = WindowState == FormWindowState.Maximized
-            ? FormWindowState.Normal
-            : FormWindowState.Maximized;
-
-    // 移动 / 缩放 / 最大化后：刷新毛玻璃裁剪区 + 同步窗口按钮图标
-    protected override void OnResize(EventArgs e)
-    {
-        base.OnResize(e);
-        if (_caps != null) _caps.IsMaximized = WindowState == FormWindowState.Maximized;
-        _sidebar?.Invalidate(true);
-    }
-
-    protected override void OnMove(EventArgs e)
-    {
-        base.OnMove(e);
-        _sidebar?.Invalidate(true);
+        // 原生标题栏，无需 DWM 自定义
     }
 
     // ==================== 框架 UI ====================
     private void BuildChrome()
     {
-        // ---- 侧栏（毛玻璃） ----
-        _sidebar = new FrostedPanel { Width = 212, Dock = DockStyle.Left };
+        // ---- 侧栏（纯色背景） ----
+        _sidebar = new Panel { Width = 212, Dock = DockStyle.Left, BackColor = MacTheme.SidebarBg };
         Controls.Add(_sidebar);
 
         var logo = new Label
@@ -281,17 +192,8 @@ public class MainForm : Form
         };
         _content.Controls.Add(_lblPageTitle);
 
-        // ---- Windows 习惯窗口按钮（右上角：最小化 / 最大化 / 关闭） ----
-        _caps = new CaptionButtons
-        {
-            Location = new Point(ClientSize.Width - 46 * 3, 0),
-            Anchor = AnchorStyles.Top | AnchorStyles.Right
-        };
-        _caps.MinClick += (s, e) => WindowState = FormWindowState.Minimized;
-        _caps.MaxClick += (s, e) => ToggleMaximize();
-        _caps.CloseClick += (s, e) => Close();
-        Controls.Add(_caps);
-        _caps.BringToFront();
+        // ---- Windows 原生标题栏（FormBorderStyle.Sizable 自带） ----
+        // 无需自定义 CaptionButtons
     }
 
     private void SwitchNav(int index)
@@ -906,8 +808,8 @@ public class MainForm : Form
         _content.BackColor = MacTheme.WindowBg;
         _lblPageTitle.ForeColor = MacTheme.Ink;
         ApplyThemeRecursive(this);
-        _sidebar.Invalidate(true); // 毛玻璃色调层随主题切换
-        if (IsHandleCreated) DwmHelper.SetDarkMode(Handle, MacTheme.IsDark);
+        _sidebar.Invalidate(true); // 纯色侧栏随主题切换
+        // 原生标题栏，无需 DWM 暗色模式同步
         Invalidate(true);
     }
 
