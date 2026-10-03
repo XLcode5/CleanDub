@@ -1,12 +1,24 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net6.0-windows</TargetFramework>
-    <Nullable>disable</Nullable>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>disable</ImplicitUsings>
-    <EnableWorkloadResolver>false</EnableWorkloadResolver>
+    <ApplicationIcon></ApplicationIcon>
+    <AssemblyName>CleanDub</AssemblyName>
+    <RootNamespace>CleanDub.Gui</RootNamespace>
+    <StartupObject>CleanDub.Gui.Program</StartupObject>
+    <!-- Override broken env var Version=V3.1.0.1 -->
+    <Version>0.5.0</Version>
+    <AssemblyVersion>0.5.0</AssemblyVersion>
+    <FileVersion>0.5.0</FileVersion>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Form1.cs" />
+    <Compile Remove="Form1.Designer.cs" />
+  </ItemGroup>
 
 </Project>

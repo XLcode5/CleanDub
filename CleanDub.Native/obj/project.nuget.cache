@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "VztFBpHJ4P0=",
+  "success": true,
+  "projectFilePath": "D:\\OpenClaw\\clear app\\CleanDub.Native\\CleanDub.Native.csproj",
+  "expectedPackageFiles": [
+    "D:\\d\\OpenClaw\\clear app\\.nuget\\packages\\microsoft.web.webview2\\1.0.2420.47\\microsoft.web.webview2.1.0.2420.47.nupkg.sha512"
+  ],
+  "logs": []
+}

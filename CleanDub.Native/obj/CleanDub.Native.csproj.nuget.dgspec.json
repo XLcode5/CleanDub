@@ -1,0 +1,75 @@
+{
+  "format": 1,
+  "restore": {
+    "D:\\OpenClaw\\clear app\\CleanDub.Native\\CleanDub.Native.csproj": {}
+  },
+  "projects": {
+    "D:\\OpenClaw\\clear app\\CleanDub.Native\\CleanDub.Native.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "D:\\OpenClaw\\clear app\\CleanDub.Native\\CleanDub.Native.csproj",
+        "projectName": "CleanDub.Native",
+        "projectPath": "D:\\OpenClaw\\clear app\\CleanDub.Native\\CleanDub.Native.csproj",
+        "packagesPath": "D:\\d\\OpenClaw\\clear app\\.nuget\\packages",
+        "outputPath": "D:\\OpenClaw\\clear app\\CleanDub.Native\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\Admin\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0-windows"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0-windows7.0": {
+            "targetAlias": "net8.0-windows",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        }
+      },
+      "frameworks": {
+        "net8.0-windows7.0": {
+          "targetAlias": "net8.0-windows",
+          "dependencies": {
+            "Microsoft.Web.WebView2": {
+              "target": "Package",
+              "version": "[1.0.2420.47, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            },
+            "Microsoft.WindowsDesktop.App.WindowsForms": {
+              "privateAssets": "none"
+            }
+          },
+          "runtimeIdentifierGraphPath": "D:\\OpenClaw\\dotnet\\sdk\\8.0.425/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CleanDub C# WinForms — UI 设计报告</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --card: #1c2128;
+  --border: #30363d;
+  --hover: #242931;
+  --text: #e6edf3;
+  --text2: #8b949e;
+  --accent: #58a6ff;
+  --accent2: #79c0ff;
+  --success: #3fb950;
+  --warning: #d29922;
+  --danger: #f85149;
+  --radius: 12px;
+}
+[data-theme="light"] {
+  --bg: #fff;
+  --surface: #f6f8fa;
+  --card: #fff;
+  --border: #d0d7de;
+  --hover: #f0f2f5;
+  --text: #1f2328;
+  --text2: #656d76;
+  --accent: #0969da;
+  --accent2: #0550ae;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body {
+  font-family: "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  transition: background .3s, color .3s;
+}
+
+/* ===== Layout ===== */
+.container { max-width: 960px; margin: 0 auto; padding: 48px 24px 120px; }
+
+/* ===== Header ===== */
+.report-header {
+  text-align: center;
+  padding: 60px 0 40px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 48px;
+}
+.report-header .badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 20px;
+  padding: 4px 16px;
+  margin-bottom: 16px;
+}
+.report-header h1 {
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.report-header .subtitle {
+  font-size: 16px;
+  color: var(--text2);
+}
+.report-header .meta {
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--text2);
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.report-header .meta span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== Theme Toggle ===== */
+.theme-toggle {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+  transition: all .2s;
+  z-index: 999;
+}
+.theme-toggle:hover { background: var(--hover); }
+
+/* ===== Sections ===== */
+section { margin-bottom: 48px; }
+section h2 {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--accent);
+  display: inline-block;
+}
+section h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 32px 0 12px;
+}
+section p { color: var(--text2); margin-bottom: 16px; }
+
+/* ===== Color Palette ===== */
+.palette-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  margin: 20px 0;
+}
+.color-chip {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.color-chip .swatch {
+  height: 64px;
+  position: relative;
+}
+.color-chip .swatch .hex {
+  position: absolute;
+  bottom: 6px;
+  right: 8px;
+  font-size: 11px;
+  font-family: "Cascadia Code", "JetBrains Mono", "Fira Code", monospace;
+  color: rgba(255,255,255,.8);
+  text-shadow: 0 1px 2px rgba(0,0,0,.5);
+}
+.color-chip .info {
+  padding: 10px 12px;
+  background: var(--card);
+}
+.color-chip .info .name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+.color-chip .info .var {
+  font-size: 11px;
+  font-family: "Cascadia Code", "JetBrains Mono", "Fira Code", monospace;
+  color: var(--text2);
+}
+
+/* ===== Cards ===== */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin-bottom: 16px;
+}
+
+/* ===== Tables ===== */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 14px;
+}
+thead th {
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 2px solid var(--border);
+  color: var(--text2);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+tbody td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+tr:hover td { background: var(--hover); }
+td:first-child { font-weight: 600; }
+
+/* ===== Highlight boxes ===== */
+.info-box {
+  background: var(--surface);
+  border-left: 4px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 16px 20px;
+  margin: 20px 0;
+  font-size: 14px;
+}
+.info-box.warn { border-left-color: var(--warning); }
+.info-box.success { border-left-color: var(--success); }
+
+/* ===== Code ===== */
+code {
+  font-family: "Cascadia Code", "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  font-size: 13px;
+  background: var(--surface);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+pre {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  overflow-x: auto;
+  font-size: 13px;
+  margin: 16px 0;
+}
+pre code {
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+/* ===== Tags ===== */
+.tag {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.tag-new { background: rgba(88,166,255,.15); color: var(--accent); }
+.tag-done { background: rgba(63,185,80,.15); color: var(--success); }
+.tag-wip { background: rgba(210,153,34,.15); color: var(--warning); }
+
+/* ===== Layout diagram ===== */
+.layout-diagram {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  font-family: "Cascadia Code", "JetBrains Mono", "Fira Code", monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-x: auto;
+  white-space: pre;
+  color: var(--text2);
+  margin: 16px 0;
+}
+.layout-diagram .hl { color: var(--accent); }
+.layout-diagram .dim { color: var(--text2); opacity: .6; }
+
+/* ===== Footer ===== */
+footer {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--text2);
+  font-size: 13px;
+  border-top: 1px solid var(--border);
+}
+footer a { color: var(--accent); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+
+/* ===== Print ===== */
+@media print {
+  .theme-toggle { display: none; }
+  body { background: #fff; color: #1f2328; }
+}
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" onclick="toggleTheme()" title="切换深色/浅色主题">🌙 深色模式</button>
+
+<div class="container">
+
+<!-- ===== Header ===== -->
+<header class="report-header">
+  <div class="badge">Design Report</div>
+  <h1>CleanDub C# WinForms<br>UI 重构设计报告</h1>
+  <p class="subtitle">从手动布局到现代桌面应用设计系统</p>
+  <div class="meta">
+    <span>📅 2026-10-02</span>
+    <span>📦 v0.3.0</span>
+    <span>👤 XLcode5</span>
+    <span>📐 ~1,400 行 C#</span>
+    <span>🎨 2 套主题</span>
+  </div>
+</header>
+
+<!-- ===== 设计理念 ===== -->
+<section>
+  <h2>设计理念</h2>
+  <p>整体设计借鉴 <strong>VS Code</strong>、<strong>Linear</strong>、<strong>GitHub Dark</strong> 等现代化工具的视觉语言，追求<strong>克制、清晰、高效</strong>的桌面应用体验。</p>
+
+  <div class="card">
+    <table>
+      <thead><tr><th>设计原则</th><th>体现</th></tr></thead>
+      <tbody>
+        <tr><td>减少视觉噪音</td><td>无彩色装饰，单一蓝色强调色，灰阶背景层次</td></tr>
+        <tr><td>信息密度适中</td><td>卡片化分区，统计一行四栏，设置集中面板</td></tr>
+        <tr><td>即时反馈</td><td>自定义进度条、按钮三态 (normal/hover/pressed)、侧栏激活指示条</td></tr>
+        <tr><td>暗色优先</td><td>深色为默认，眼睛友好；浅色主题完整支持一键切换</td></tr>
+        <tr><td>语义化配色</td><td>12 个色变量覆盖全部 UI 状态，无硬编码色值散落</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ===== 配色系统 ===== -->
+<section>
+  <h2>配色系统</h2>
+  <p>两套完整主题，通过 <code>static class C</code> 集中管理，全局可切换。</p>
+
+  <h3>深色主题（默认）</h3>
+  <div class="palette-grid">
+    <div class="color-chip"><div class="swatch" style="background:#0d1117"><span class="hex">#0D1117</span></div><div class="info"><div class="name">背景 Bg</div><div class="var">C.DarkBg</div></div></div>
+    <div class="color-chip"><div class="swatch" style="background:#161b22"><span class="hex">#161B22</span></div><div class="info"><div class="name">表层 Surface</div><div class="var">C.DarkSurface</div></div></div>
+    <div class="color-chip"><div class="swatch" style="background:#1c2128"><span class="hex">#1C2128</span></div><div class="info"><div class="name">卡片 Card</div><div class="var">C.DarkCard</div></div></div>
+    <div class="color-chip"><div class="swatch" style="background:#30363d"><span class="hex">#30363D</span></div><div class="info"><div class="name">边框 Border</div><div class="var">C.DarkBorder</div></div></div>
+    <div class="color-chip"><div class="swatch" style="background:#e6edf3"><span class="hex" style="color:#0d1117;text-shadow:none">#E6EDF3</span></div><div class="info"><div class="name">主文字 Text</div><div class="var">C.DarkText</div></div></div>
+    <div class="color-chip"><div class="swatch" style="background:#8b949e"><span class="hex">#8B949E</span></div><div class="info"><div class="name">次文字 Text2</div><div class="var">C.DarkText2</div></div></div>
+    <div class="color-chip"><div class="swatch" style="background:#58a6ff"><span class="hex">#58A6FF</span></div><div class="info"><div class="name">强调 Accent</div><div class="var">C.Accent</div></div></div>
+    <div class="color-chip"><div class="swatch" style="background:#3fb950"><span class="hex">#3FB950</span></div><div class="info"><div class="name">成功 Success</div><div class="var">C.Success</div></div></div>
+    <div class="color-chip"><div class="swatch" style="background:#d29922"><span class="hex">#D29922</span></div><div class="info"><div class="name">警告 Warning</div><div class="var">C.Warning</div></div></div>
+    <div class="color-chip"><div class="swatch" style="background:#f85149"><span class="hex">#F85149</span></div><div class="info"><div class="name">危险 Danger</div><div class="var">C.Danger</div></div></div>
+  </div>
+
+  <h3>浅色主题</h3>
+  <div class="palette-grid">
+    <div class="color-chip"><div class="swatch" style="background:#fff"><span class="hex" style="color:#1f2328;text-shadow:none">#FFFFFF</span></div><div class="info"><div class="name">背景 Bg</div><div class="var">C.LightBg</div></div></div>
+    <div class="color-chip"><div class="swatch" style="background:#f6f8fa"><span class="hex" style="color:#1f2328;text-shadow:none">#F6F8FA</span></div><div class="info"><div class="name">表层 Surface</div><div class="var">C.LightSurface</div></div></div>
+    <div class="color-chip"><div class="swatch" style="background:#d0d7de"><span class="hex" style="color:#1f2328;text-shadow:none">#D0D7DE</span></div><div class="info"><div class="name">边框 Border</div><div class="var">C.LightBorder</div></div></div>
+    <div class="color-chip"><div class="swatch" style="background:#1f2328"><span class="hex">#1F2328</span></div><div class="info"><div class="name">主文字 Text</div><div class="var">C.LightText</div></div></div>
+    <div class="color-chip"><div class="swatch" style="background:#656d76"><span class="hex">#656D76</span></div><div class="info"><div class="name">次文字 Text2</div><div class="var">C.LightText2</div></div></div>
+  </div>
+</section>
+
+<!-- ===== 布局架构 ===== -->
+<section>
+  <h2>布局架构</h2>
+  <p>左侧栏 + 主内容区的经典桌面应用布局，所有卡片带 12px 圆角和 1px 边框。</p>
+
+  <div class="layout-diagram">
+┌──────────────┬─────────────────────────────────────────────┐
+│              │  <span class="hl">🏷 重复文件清理</span>                                 │
+│  <span class="dim">220px 侧栏</span>   │  内容级 SHA-256 判重 · 安全隔离区 · 误删可还原     │
+│              ├──────────┬──────────┬──────────┬────────────┤
+│  <span class="hl">🔍 扫描</span>      │ <span class="hl">重复组</span>    │ <span class="hl">待处理</span>    │ <span class="hl">可释放</span>    │ <span class="hl">扫描耗时</span>    │  ← 统计卡片行
+│  <span class="dim">─────────</span>  ├──────────┴──────────┴──────────┴────────────┤
+│  📋 历史      │  ┌ 扫描设置 ─────────────────────────────┐  │
+│              │  │ 目录 [_________________] [浏览…]       │  │
+│  📦 隔离区    │  │ 策略 [▼] 校验 [▼] ☑递归 ☑硬链接     │  │
+│              │  │               [<span class="hl">▶ 开始扫描</span>] [⏹ 终止]   │  │
+│  ⚙ 设置      │  └───────────────────────────────────────┘  │
+│              │  ┌ 进度条 ───────────────────────────────┐  │
+│              │  │ ▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░░  62%  正在索引… │  │
+│              │  └───────────────────────────────────────┘  │
+│              │  ┌ 结果列表 (ListView Owner-Draw) ────────┐  │
+│              │  │ 目录        │ 文件数 │ 可释放 │ 保留   │  │
+│              │  │ 2024-03…   │   5    │ 128MB  │ A.docx │  │
+│              │  │ 2024-02…   │   3    │  64MB  │ B.pdf  │  │
+│              │  └───────────────────────────────────────┘  │
+│ <span class="dim">[🌙 主题]</span>   │  已勾选 8 个文件 · 预计释放 192 MB              │
+│              │       [<span class="hl">📦 移入隔离区</span>] [📥 导出] [🗑 永久删除]   │
+└──────────────┴─────────────────────────────────────────────┘
+  </div>
+
+  <div class="card">
+    <table>
+      <thead><tr><th>区域</th><th>控件</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td>左侧栏 (220px)</td><td><code>SidebarButton × 4</code></td><td>导航：扫描 / 历史 / 隔离区 / 设置，蓝色激活指示条</td></tr>
+        <tr><td>标题栏</td><td><code>Label × 2</code></td><td>应用名 20px Bold + 描述文字</td></tr>
+        <tr><td>统计卡片行</td><td><code>Panel × 4</code> (Owner-Draw)</td><td>重复组、待处理、可释放、耗时，190×74px</td></tr>
+        <tr><td>设置卡片</td><td><code>Panel</code> + 内嵌控件</td><td>路径输入、策略/校验下拉、复选框、扫描/终止按钮</td></tr>
+        <tr><td>进度条</td><td><code>CustomProgressBar</code></td><td>自绘圆角进度条，按需显示/隐藏</td></tr>
+        <tr><td>结果列表</td><td><code>ListView</code> (Owner-Draw)</td><td>4 列：目录/文件数/可释放/保留文件，隔行变色</td></tr>
+        <tr><td>底部操作栏</td><td><code>ModernButton × 3</code></td><td>隔离区、导出 CSV、永久删除</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ===== 核心自定义控件 ===== -->
+<section>
+  <h2>核心自定义控件</h2>
+
+  <p>全部控件通过 GDI+ (<code>System.Drawing.Drawing2D</code>) 自绘，彻底摆脱 WinForms 原生控件的直角、粗边框风格。</p>
+
+  <div class="card">
+    <table>
+      <thead><tr><th>控件</th><th>类型</th><th>特性</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>ModernButton</strong></td>
+          <td>自定义 Button</td>
+          <td>GDI+ 自绘，圆角 8px，三态动画 (normal/hover/pressed)，支持 <strong>填充</strong> / <strong>幽灵 (ghost)</strong> / <strong>危险 (danger)</strong> 三种样式，禁用态灰显</td>
+        </tr>
+        <tr>
+          <td><strong>SidebarButton</strong></td>
+          <td>自定义 Control</td>
+          <td>左侧 3px 蓝色激活指示条，激活时圆角背景高亮，hover 半透明过渡</td>
+        </tr>
+        <tr>
+          <td><strong>CustomProgressBar</strong></td>
+          <td>自定义 Control</td>
+          <td>自绘圆角进度条，蓝色填充 + 深色轨道，无 WinForms 原生锯齿，0-100% 平滑</td>
+        </tr>
+        <tr>
+          <td><strong>统计卡片</strong></td>
+          <td>Panel (Owner-Draw)</td>
+          <td>10px 圆角 + 1px 边框 + 表面色填充，每张 190×74px，标签在上数值在下</td>
+        </tr>
+        <tr>
+          <td><strong>设置卡片</strong></td>
+          <td>Panel (Owner-Draw)</td>
+          <td>12px 圆角 + 1px 边框，内含输入控件和操作按钮</td>
+        </tr>
+        <tr>
+          <td><strong>ListView</strong></td>
+          <td>Owner-Draw ListView</td>
+          <td>隔行交替变色，选中行蓝色高亮，复选框区域独立背景</td>
+        </tr>
+        <tr>
+          <td><strong>RoundedRectangle</strong></td>
+          <td>Graphics 扩展方法</td>
+          <td><code>FillRoundedRectangle</code> / <code>DrawRoundedRectangle</code> 通用 GDI+ 圆角绘制</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>ModernButton 样式变体</h3>
+  <div class="card">
+    <table>
+      <thead><tr><th>样式</th><th>设置</th><th>效果</th><th>使用场景</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Fill Accent</strong></td><td><code>AccentColor=true, IsGhost=false</code></td><td>蓝底白字，hover 亮蓝，圆角 8px</td><td>主操作按钮（开始扫描）</td></tr>
+        <tr><td><strong>Ghost</strong></td><td><code>AccentColor=true, IsGhost=true</code></td><td>透明背景 + 文字色，hover 显示浅色底</td><td>次要操作（浏览、导出）</td></tr>
+        <tr><td><strong>Danger</strong></td><td><code>AccentColor=true, _isDanger=true</code></td><td>红底白字，hover 亮红</td><td>危险操作（永久删除、终止）</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ===== 新增/重写文件 ===== -->
+<section>
+  <h2>文件清单</h2>
+
+  <div class="card">
+    <table>
+      <thead><tr><th>文件</th><th>行数</th><th>状态</th><th>用途</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>MainForm.cs</code></td>
+          <td><strong>950</strong></td>
+          <td><span class="tag tag-new">重写</span></td>
+          <td>🔥 全新 UI：侧栏导航、统计卡片、5 个自定义控件、GDI+ 绘制、深/浅主题切换</td>
+        </tr>
+        <tr>
+          <td><code>Models.cs</code></td>
+          <td><strong>179</strong></td>
+          <td><span class="tag tag-new">新增</span></td>
+          <td>10 个类型：ScanPhase / RetentionStrategy / VerifyLevel / OpType / ScanProgress / DuplicateGroup / DuplicateFile / ScanResult / OpLogEntry / AppSettings</td>
+        </tr>
+        <tr>
+          <td><code>ScanEngine.cs</code></td>
+          <td><strong>269</strong></td>
+          <td><span class="tag tag-new">新增</span></td>
+          <td>PowerShell 引擎封装：异步扫描、stdout 解析、IProgress&lt;T&gt; 进度、取消、CSV 导出</td>
+        </tr>
+        <tr>
+          <td><code>Program.cs</code></td>
+          <td><strong>14</strong></td>
+          <td><span class="tag tag-new">更新</span></td>
+          <td>入口，新增 HighDpiMode.PerMonitorV2</td>
+        </tr>
+        <tr>
+          <td><code>CleanDub.Gui.csproj</code></td>
+          <td><strong>22</strong></td>
+          <td><span class="tag tag-new">更新</span></td>
+          <td>清理 Form1 引用，显式 StartupObject</td>
+        </tr>
+        <tr>
+          <td><code>Form1.cs</code></td>
+          <td>—</td>
+          <td><span class="tag tag-done">删除</span></td>
+          <td>旧版未使用的占位文件</td>
+        </tr>
+        <tr>
+          <td><code>Form1.Designer.cs</code></td>
+          <td>—</td>
+          <td><span class="tag tag-done">删除</span></td>
+          <td>旧版设计器文件</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="info-box success">
+    <strong>📊 总代码量：~1,400 行 C#</strong>（4 个源文件），vs 旧版 393 行 + 无 Models/Engine
+  </div>
+</section>
+
+<!-- ===== 新旧对比 ===== -->
+<section>
+  <h2>旧版 vs 新版 对比</h2>
+
+  <div class="card">
+    <table>
+      <thead><tr><th>维度</th><th>旧版 MainForm.cs (393行)</th><th>新版 MainForm.cs (950行)</th></tr></thead>
+      <tbody>
+        <tr><td>布局方式</td><td><code>TableLayoutPanel</code> 嵌套，布局僵硬</td><td>手动定位 + <code>Dock</code>，精确像素级控制</td></tr>
+        <tr><td>配色</td><td>硬编码 <code>Color.FromArgb</code> 散落各处</td><td>集中 <code>static class C</code>，12 色变量，深浅双主题</td></tr>
+        <tr><td>主题切换</td><td>简单递归改色，覆盖不全</td><td><code>ApplyTheme()</code> + 控件级 <code>SetColors()</code></td></tr>
+        <tr><td>按钮</td><td>原生 WinForms Button，直角</td><td>GDI+ 自绘 ModernButton，圆角 8px，三态动画</td></tr>
+        <tr><td>统计区</td><td>❌ 无</td><td>四张圆角卡片，Owner-draw 自绘背景</td></tr>
+        <tr><td>侧栏</td><td>❌ 无</td><td>220px 导航侧栏，Logo + 版本 + 导航 + 主题切换</td></tr>
+        <tr><td>进度条</td><td>WinForms ProgressBar Marquee</td><td>自绘圆角进度条 CustomProgressBar</td></tr>
+        <tr><td>ListView</td><td>原生绘制</td><td>Owner-draw，隔行变色，选中高亮</td></tr>
+        <tr><td>数据模型</td><td>❌ 匿名类型</td><td>10 个结构化类型，枚举 + 计算属性</td></tr>
+        <tr><td>引擎封装</td><td>内嵌简单 Process.Start</td><td>独立 ScanEngine 类，IProgress&lt;T&gt; + CancellationToken</td></tr>
+        <tr><td>高 DPI</td><td>❌ 未处理</td><td>PerMonitorV2 支持</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ===== 架构图 ===== -->
+<section>
+  <h2>架构总览</h2>
+
+  <div class="layout-diagram">
+ ┌───────────────────────────────────────────────────┐
+ │                  <span class="hl">Program.cs</span> (入口)                  │
+ │           Application.Run(new MainForm())          │
+ └──────────────────────┬────────────────────────────┘
+                        │
+ ┌──────────────────────▼────────────────────────────┐
+ │                  <span class="hl">MainForm.cs</span> (950行)              │
+ │  ┌─────────┐  ┌──────────────┐  ┌──────────────┐ │
+ │  │ 侧栏导航 │  │  统计卡片 ×4  │  │  ListView    │ │
+ │  │ 主题切换 │  │  设置面板     │  │  Owner-Draw  │ │
+ │  │          │  │  进度条       │  │              │ │
+ │  └─────────┘  └──────────────┘  └──────────────┘ │
+ │  ┌──────────────────────────────────────────────┐ │
+ │  │  自定义控件：ModernButton / SidebarButton    │ │
+ │  │  CustomProgressBar / GraphicsExtensions      │ │
+ │  └──────────────────────────────────────────────┘ │
+ └──────────────────────┬────────────────────────────┘
+                        │ 调用
+ ┌──────────────────────▼────────────────────────────┐
+ │               <span class="hl">ScanEngine.cs</span> (269行)              │
+ │  ScanAsync() / ExportCsvAsync() / Stop()           │
+ │  stdout 解析 / IProgress&lt;ScanProgress&gt; / Cancel   │
+ └──────────────────────┬────────────────────────────┘
+                        │ PowerShell Process.Start
+ ┌──────────────────────▼────────────────────────────┐
+ │          <span class="dim">dedup_core.ps1</span> / <span class="dim">dedup_server.ps1</span>         │
+ │          三级流水线引擎 (PowerShell 5.1)            │
+ └───────────────────────────────────────────────────┘
+  </div>
+</section>
+
+<!-- ===== 待完善 ===== -->
+<section>
+  <h2>待后续完善</h2>
+
+  <div class="info-box warn">
+    <strong>⚠ 以下功能骨架已就绪，具体业务逻辑需连通 PowerShell 脚本的真实输出后才能跑通：</strong>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead><tr><th>功能</th><th>现状</th><th>建议</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>结果列表填充</td>
+          <td><span class="tag tag-wip">骨架就绪</span></td>
+          <td>让 <code>dedup_core.ps1</code> 增加 <code>-Json</code> 参数输出结构化 JSON，ScanEngine 用 <code>System.Text.Json</code> 反序列化到 ScanResult</td>
+        </tr>
+        <tr>
+          <td>隔离区操作</td>
+          <td><span class="tag tag-wip">按钮已就绪</span></td>
+          <td>调用 <code>dedup.ps1 -Action Quarantine -Yes</code>，解析返回结果</td>
+        </tr>
+        <tr>
+          <td>永久删除</td>
+          <td><span class="tag tag-wip">二次确认已实现</span></td>
+          <td>调用 <code>dedup.ps1 -Action Permanent -Yes</code></td>
+        </tr>
+        <tr>
+          <td>CSV 导出</td>
+          <td><span class="tag tag-wip">SaveFileDialog 已就绪</span></td>
+          <td>调用 <code>ScanEngine.ExportCsvAsync()</code></td>
+        </tr>
+        <tr>
+          <td>历史 / 隔离区 / 设置视图</td>
+          <td><span class="tag tag-wip">侧栏导航已支持</span></td>
+          <td>在 <code>SwitchNav()</code> 中切换主面板内容</td>
+        </tr>
+        <tr>
+          <td>自动更新检查</td>
+          <td><span class="tag tag-wip">version.json 已配置</span></td>
+          <td>调用 GitHub Releases API，比对版本号</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ===== 编译运行 ===== -->
+<section>
+  <h2>编译与运行</h2>
+
+  <div class="card">
+    <div class="card-title">🔨 开发构建</div>
+    <pre><code># 确保安装了 .NET 6 SDK
+cd "D:OpenClawclear appCleanDub.Gui"
+dotnet build -c Release</code></pre>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📦 单文件发布（自包含，无需安装 .NET）</div>
+    <pre><code>dotnet publish -c Release -r win-x64 --self-contained true     /p:PublishSingleFile=true     /p:IncludeNativeLibrariesForSelfExtract=true
+
+# 输出 exe 在：
+# binRelease
+et6.0-windowswin-x64publishCleanDub.exe</code></pre>
+  </div>
+</section>
+
+<!-- ===== Footer ===== -->
+<footer>
+  <p>CleanDub — 内容级重复文件清理工具</p>
+  <p><a href="https://github.com/XLcode5/CleanDub">github.com/XLcode5/CleanDub</a> · MIT License</p>
+</footer>
+
+</div>
+
+<script>
+function toggleTheme() {
+  const html = document.documentElement;
+  const btn = document.querySelector('.theme-toggle');
+  if (html.getAttribute('data-theme') === 'light') {
+    html.removeAttribute('data-theme');
+    btn.textContent = '🌙 深色模式';
+  } else {
+    html.setAttribute('data-theme', 'light');
+    btn.textContent = '☀️ 浅色模式';
+  }
+}
+</script>
+</body>
+</html>
