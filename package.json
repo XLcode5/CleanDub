@@ -17,15 +17,23 @@
     "package": "electron-builder --win --dir"
   },
   "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
     "concurrently": "^9.1.2",
     "electron": "^33.4.0",
     "electron-builder": "^25.1.8",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
     "wait-on": "^8.0.3"
   },
   "allowScripts": {
     "electron@33.4.11": true
   },
   "dependencies": {
-    "better-sqlite3": "^11.10.0"
+    "better-sqlite3": "^11.10.0",
+    "lucide-react": "^1.54.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
   }
 }
