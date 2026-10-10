@@ -11,6 +11,7 @@
     "dev:renderer": "vite",
     "dev:electron": "wait-on tcp:5173 && set NODE_ENV=development&& electron .",
     "start": "electron .",
+  "test": "node electron/smoke.test.js && node electron/smoke.options.test.js && node electron/smoke.quarantine.test.js",
     "build": "npm run build:renderer && npm run build:electron",
     "build:renderer": "vite build",
     "build:electron": "electron-builder --win",
