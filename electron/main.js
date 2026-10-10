@@ -83,7 +83,16 @@ app.whenReady().then(() => {
   db.init();
   const settings = new Settings(path.join(userData, 'appsettings.json'));
   const scanManager = new ScanManager({ db });
-  const quarantine = new Quarantine({ db });
+  const quarantine = new Quarantine({ db, customDir: settings.get().quarantineDir });
+  // 隔离区位置变更后实时生效：update-app-settings 时同步更新 quarantine.customDir
+  const _origUpdate = settings.update.bind(settings);
+  settings.update = (patch) => {
+    const r = _origUpdate(patch);
+    if (patch && typeof patch.quarantineDir === 'string') {
+      quarantine.customDir = patch.quarantineDir.trim() || null;
+    }
+    return r;
+  };
   services = { db, settings, scanManager, quarantine };
 
   registerIpc({

@@ -114,10 +114,11 @@ export interface AppSettings {
   defaultPath: string;
   strategy: string;
   verify: 'Full' | 'Head' | 'Name' | 'Size';
-  recurse?: boolean;
   detectLinks: boolean;
-  excludeDirs: string[];
+  recurse?: boolean;
   minSize?: number;
+  excludeDirs: string[];
+  quarantineDir?: string;
 }
 
 export interface BridgeInvokeMap {

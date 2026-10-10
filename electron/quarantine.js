@@ -43,11 +43,16 @@ function isUnder(child, parent) {
 }
 
 class Quarantine {
-  constructor({ db }) {
+  constructor({ db, customDir }) {
     this.db = db;
+    // 自定义隔离区位置：设置后所有扫描共用（规格 7.6「隔离区位置」）；空 = 各扫描根下默认目录
+    this.customDir = customDir && String(customDir).trim() ? String(customDir).trim() : null;
   }
 
-  quarantineRoot(scanRoot) { return path.join(normalizeRoot(scanRoot), '_dedup_quarantine'); }
+  quarantineRoot(scanRoot) {
+    if (this.customDir) return this.customDir;
+    return path.join(normalizeRoot(scanRoot), '_dedup_quarantine');
+  }
   logsRoot(scanRoot) { return path.join(normalizeRoot(scanRoot), '_dedup_logs'); }
 
   /**

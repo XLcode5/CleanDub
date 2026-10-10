@@ -12,7 +12,8 @@ const DEFAULTS = {
   verify: 'Full',
   detectLinks: true,
   recurse: true,
-  excludeDirs: []
+  excludeDirs: [],
+  quarantineDir: ''  // 隔离区位置：空 = 默认各扫描根下 _dedup_quarantine；设置后所有扫描共用此专用目录
 };
 
 const VALID_VERIFY = new Set(['Full', 'Head', 'Name', 'Size']);
@@ -31,6 +32,7 @@ class Settings {
       if (VALID_VERIFY.has(raw.verify)) s.verify = raw.verify;
       if (typeof raw.detectLinks === 'boolean') s.detectLinks = raw.detectLinks;
       if (typeof raw.recurse === 'boolean') s.recurse = raw.recurse;
+      if (typeof raw.quarantineDir === 'string') s.quarantineDir = raw.quarantineDir.trim();
       if (Array.isArray(raw.excludeDirs)) {
         s.excludeDirs = raw.excludeDirs.filter(x => typeof x === 'string' && x.trim());
       }

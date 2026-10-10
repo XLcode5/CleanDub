@@ -59,6 +59,7 @@ export function HomePage({ onNavigateToCleanup }: HomePageProps) {
   const [detectLinks, setDetectLinks] = useState<boolean>(false);
   const [excludeDirs, setExcludeDirs] = useState<string[]>([]);
   const [excludeInput, setExcludeInput] = useState('');
+  const [quarantineDir, setQuarantineDir] = useState('');
   const settingsLoadedRef = useRef(false);
 
   useEffect(() => {
@@ -108,6 +109,7 @@ export function HomePage({ onNavigateToCleanup }: HomePageProps) {
         if (typeof s.recurse === 'boolean') setRecurse(s.recurse);
         if (typeof s.detectLinks === 'boolean') setDetectLinks(s.detectLinks);
         if (Array.isArray(s.excludeDirs)) setExcludeDirs(s.excludeDirs);
+        if (typeof s.quarantineDir === 'string') setQuarantineDir(s.quarantineDir);
       } catch (e) {
         if (!cancelled) console.warn('加载应用设置失败', e);
       } finally {
@@ -120,10 +122,10 @@ export function HomePage({ onNavigateToCleanup }: HomePageProps) {
   // 选项变更后持久化（仅在初始加载完成后）
   useEffect(() => {
     if (!settingsLoadedRef.current) return;
-    invoke('update-app-settings', { verify, recurse, detectLinks, excludeDirs }).catch(e => {
+    invoke('update-app-settings', { verify, recurse, detectLinks, excludeDirs, quarantineDir }).catch(e => {
       console.warn('保存扫描选项失败', e);
     });
-  }, [verify, recurse, detectLinks, excludeDirs]);
+  }, [verify, recurse, detectLinks, excludeDirs, quarantineDir]);
 
   // 订阅扫描事件
   useEffect(() => {
@@ -176,6 +178,18 @@ export function HomePage({ onNavigateToCleanup }: HomePageProps) {
   const handleRemoveDir = useCallback((dir: string) => {
     setDirectories(prev => prev.filter(d => d !== dir));
   }, []);
+
+  const handleChooseQuarantineDir = useCallback(async () => {
+    try {
+      const r = await invoke('choose-directories');
+      const paths = (r as { paths?: string[] }).paths ?? [];
+      if (paths.length === 0) return;
+      setQuarantineDir(paths[0]);
+      toast.success('隔离区位置已更新: ' + paths[0]);
+    } catch (e) {
+      toast.error('选择隔离区目录失败: ' + (e instanceof Error ? e.message : String(e)));
+    }
+  }, [toast]);
 
   const handleStartScan = useCallback(async () => {
     if (directories.length === 0) {
@@ -447,6 +461,38 @@ export function HomePage({ onNavigateToCleanup }: HomePageProps) {
               </ul>
             )}
           </div>
+
+          {/* 隔离区位置 */}
+          <div className="scan-option-row">
+            <div className="scan-option-label">
+              <span className="strong">隔离区位置</span>
+              <span className="aux">
+                {quarantineDir ? quarantineDir : '默认使用各扫描根目录下的 _dedup_quarantine'}
+              </span>
+            </div>
+            <div className="row" style={{ gap: 8 }}>
+              {quarantineDir && (
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => setQuarantineDir('')}
+                  disabled={isRunning}
+                  title="恢复为默认位置（各扫描根下 _dedup_quarantine）"
+                >
+                  恢复默认
+                </button>
+              )}
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={handleChooseQuarantineDir}
+                disabled={isRunning}
+              >
+                <FolderOpen size={13} />
+                选择目录
+              </button>
+            </div>
+          </div>
         </div>
       </Card>
 
@@ -535,7 +581,21 @@ export function HomePage({ onNavigateToCleanup }: HomePageProps) {
       </Card>
 
       {/* ---------- 5.5 扫描结果摘要卡片 ---------- */}
-      <Card title="扫描结果摘要" icon={<Search size={15} strokeWidth={1.8} />}>
+      <Card
+        title="扫描结果摘要"
+        icon={<Search size={15} strokeWidth={1.8} />}
+        actions={
+          !loadingHistory && (stats.sessionId !== null || isDemoMode) && stats.duplicateGroupCount > 0 ? (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={onNavigateToCleanup}
+            >
+              查看清理结果
+            </button>
+          ) : undefined
+        }
+      >
         {loadingHistory ? (
           <div className="aux">加载中…</div>
         ) : stats.sessionId === null && !isDemoMode ? (
@@ -561,19 +621,9 @@ export function HomePage({ onNavigateToCleanup }: HomePageProps) {
                 hint={stats.lastScanAt ? new Date(stats.lastScanAt).toLocaleString('zh-CN') : undefined}
               />
             </div>
-            <div className="row">
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={onNavigateToCleanup}
-                disabled={stats.duplicateGroupCount === 0}
-              >
-                查看清理结果
-              </button>
-              {stats.duplicateGroupCount === 0 && state === 'completed' && (
-                <span className="tag tag-success" style={{ marginLeft: 4 }}>未发现重复文件</span>
-              )}
-            </div>
+            {stats.duplicateGroupCount === 0 && state === 'completed' && (
+              <span className="tag tag-success">未发现重复文件</span>
+            )}
           </>
         )}
       </Card>
