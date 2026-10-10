@@ -657,7 +657,9 @@ a:hover { text-decoration: underline; }
 .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 /* grid 默认 align-items: stretch，但要保证卡片本身撑满网格单元格，
    且 StatCard 等子卡高度一致，避免「最近一次扫描」等带 hint 的卡高于其它 */
-.grid > .card { height: 100%; }
+/* grid 容器内的卡片用 gap 控制间距，禁用 .card + .card 的 margin-top
+   （否则 grid 里第一张卡 marginTop:0、其余 12px，导致同行卡片垂直错位） */
+.grid > .card { height: 100%; margin-top: 0 !important; }
 .grid > .stat-card { min-height: 86px; display: flex; flex-direction: column; }
 .grid-2 > .card, .grid-3 > .card, .grid-4 > .card { display: flex; flex-direction: column; }
 .grid-2 > .card > .card-body, .grid-3 > .card > .card-body, .grid-4 > .card > .card-body { flex: 1; }
