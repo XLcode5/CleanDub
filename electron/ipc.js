@@ -73,11 +73,14 @@ function registerIpc({ ipcMain, getWindow, db, settings, scanManager, quarantine
     return db.setRetainedFile(groupId, fileId);
   });
   // 批量保留策略：一次性为整个会话的所有重复组选定 retained_file_id
-  // strategy: Cleanest / Newest / Original / Highest（对齐 dedup_core.ps1 Get-Keeper2）
+  // strategy: Cleanest / Newest / Original / Highest / ShortestName / LongestName（对齐 dedup_core.ps1 Get-Keeper2 + v1.0.1 扩展）
   handle('apply-retention-strategy', (p) => {
     const sid = Number.isInteger(p && p.sessionId) ? p.sessionId : null;
     const strategy = (p && typeof p.strategy === 'string' && p.strategy) || settings.get().strategy || 'Cleanest';
-    return db.applyRetentionStrategy(sid, strategy);
+    const options = {};
+    if (p && Array.isArray(p.groupIds)) options.groupIds = p.groupIds;
+    if (p && p.skipMarked === false) options.skipMarked = false;
+    return db.applyRetentionStrategy(sid, strategy, options);
   });
   handle('delete-scan-history', (p) => {
     const id = Number(p.sessionId);

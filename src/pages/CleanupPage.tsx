@@ -11,7 +11,8 @@ import {
   RotateCcw,
   Search,
   ShieldCheck,
-  Trash2
+  Trash2,
+  WandSparkles
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { invoke, isDemoMode } from '../bridge';
@@ -38,6 +39,16 @@ import {
 
 type SortKey = 'size' | 'count' | 'type' | 'path';
 type FilterKey = FileCategory | 'all';
+
+/** 智能保留策略 —— 与引擎 pickKeeper 一致（v1.0.1 扩展 ShortestName/LongestName） */
+type RetentionStrategy = 'Newest' | 'ShortestName' | 'LongestName' | 'Original' | 'Cleanest';
+const RETENTION_OPTIONS: Array<{ value: RetentionStrategy; label: string; desc: string }> = [
+  { value: 'Newest', label: '修改时间最新', desc: '每组保留 mtime 最新的文件' },
+  { value: 'ShortestName', label: '文件名最短', desc: '同长时取修改时间最新' },
+  { value: 'LongestName', label: '文件名最长', desc: '同长时取修改时间最新' },
+  { value: 'Original', label: '原件优先', desc: '无 (1) 后缀的原件；都带后缀则取最新' },
+  { value: 'Cleanest', label: '名字最干净', desc: '(N) 后缀最少 → 最新 → 路径最短' }
+];
 
 interface CleanupPageProps {
   onRescanRequest: () => void;
@@ -100,6 +111,7 @@ export function CleanupPage({ onRescanRequest }: CleanupPageProps) {
   const [pendingConfirm, setPendingConfirm] = useState<
     | { kind: 'quarantine'; ids: number[] }
     | { kind: 'delete'; ids: number[] }
+    | { kind: 'retention'; strategy: RetentionStrategy }
     | null
   >(null);
   const [busy, setBusy] = useState(false);
@@ -219,6 +231,40 @@ export function CleanupPage({ onRescanRequest }: CleanupPageProps) {
       toast.error('设置保留文件失败: ' + (e instanceof Error ? e.message : String(e)));
     }
   }, [toast]);
+
+  // ---------- 智能保留（v1.0.1）：按策略批量标记 + 反向全选 ----------
+  // 当前视图内未标记保留的组数（策略将作用于这些组）
+  const unmarkedVisibleGroups = useMemo(
+    () => visibleGroups.filter(g => !g.retained_file_id),
+    [visibleGroups]
+  );
+
+  const confirmRetention = useCallback(async (strategy: RetentionStrategy) => {
+    setBusy(true);
+    try {
+      const groupIds = unmarkedVisibleGroups.map(g => g.id);
+      const r = await invoke('apply-retention-strategy', {
+        sessionId: sessionId ?? undefined,
+        strategy,
+        groupIds
+      });
+      toast.success(
+        `已为 ${r.groupsUpdated} 组标记保留` +
+        (r.skipped > 0 ? `（跳过已标记 ${r.skipped} 组）` : '')
+      );
+      await load();
+    } catch (e) {
+      toast.error('应用保留策略失败: ' + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setBusy(false);
+      setPendingConfirm(null);
+    }
+  }, [unmarkedVisibleGroups, sessionId, load, toast]);
+
+  // 反向全选：勾选所有非保留、未勾选的可见文件
+  const selectInverse = useCallback(() => {
+    setSelectedIds(new Set(allVisibleFileIds));
+  }, [allVisibleFileIds]);
 
   // ---------- 隔离/删除 ----------
   const confirmQuarantine = useCallback(async (ids: number[]) => {
@@ -360,6 +406,35 @@ export function CleanupPage({ onRescanRequest }: CleanupPageProps) {
                 />
               </div>
               <div className="row" style={{ marginLeft: 'auto' }}>
+                {/* 智能保留（v1.0.1）：两步确认制 —— 第一步选策略标记保留 */}
+                <select
+                  className="select"
+                  style={{ width: 150, height: 28 }}
+                  defaultValue=""
+                  disabled={busy || unmarkedVisibleGroups.length === 0}
+                  onChange={e => {
+                    const v = e.target.value as RetentionStrategy;
+                    if (v) setPendingConfirm({ kind: 'retention', strategy: v });
+                    e.target.value = '';
+                  }}
+                  aria-label="智能保留策略"
+                  title={unmarkedVisibleGroups.length === 0 ? '没有可标记的组' : `将为当前可见的 ${unmarkedVisibleGroups.length} 组应用保留策略`}
+                >
+                  <option value="">🪄 智能保留…</option>
+                  {RETENTION_OPTIONS.map(o => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={selectInverse}
+                  disabled={busy || allVisibleFileIds.size === 0}
+                  title="勾选所有非保留的可见文件（保留文件自动跳过）"
+                >
+                  <WandSparkles size={12} />
+                  反选其余
+                </button>
                 <span className="aux-sm">排序</span>
                 <select
                   className="select"
@@ -560,10 +635,10 @@ export function CleanupPage({ onRescanRequest }: CleanupPageProps) {
         confirmLabel="隔离"
         busy={busy}
         onCancel={() => setPendingConfirm(null)}
-        onConfirm={() => pendingConfirm && confirmQuarantine(pendingConfirm.ids)}
+        onConfirm={() => pendingConfirm && pendingConfirm.kind === 'quarantine' && confirmQuarantine(pendingConfirm.ids)}
       >
         <p style={{ marginBottom: 10 }}>
-          将把 <strong>{pendingConfirm?.ids.length ?? 0}</strong> 个文件移动到隔离区（约 {formatBytes(selectedBytes)}）。
+          将把 <strong>{pendingConfirm?.kind === 'quarantine' ? pendingConfirm.ids.length : 0}</strong> 个文件移动到隔离区（约 {formatBytes(selectedBytes)}）。
           隔离区文件不参与常规扫描，可随时恢复。
         </p>
         <ul style={{ maxHeight: 160, overflowY: 'auto', border: '1px solid var(--divider)', borderRadius: 4, padding: 8 }}>
@@ -586,10 +661,10 @@ export function CleanupPage({ onRescanRequest }: CleanupPageProps) {
         confirmLabel="永久删除"
         busy={busy}
         onCancel={() => setPendingConfirm(null)}
-        onConfirm={() => pendingConfirm && confirmPermanentDelete(pendingConfirm.ids)}
+        onConfirm={() => pendingConfirm && pendingConfirm.kind === 'delete' && confirmPermanentDelete(pendingConfirm.ids)}
       >
         <p style={{ marginBottom: 10, color: 'var(--danger)', fontWeight: 500 }}>
-          此操作无法通过应用恢复。确定要永久删除 <strong>{pendingConfirm?.ids.length ?? 0}</strong> 个文件吗？
+          此操作无法通过应用恢复。确定要永久删除 <strong>{pendingConfirm?.kind === 'delete' ? pendingConfirm.ids.length : 0}</strong> 个文件吗？
         </p>
         <p className="aux" style={{ marginBottom: 10 }}>
           建议优先使用隔离操作，永久删除仅在确认数据已无用时使用。
@@ -604,6 +679,31 @@ export function CleanupPage({ onRescanRequest }: CleanupPageProps) {
             <li className="aux" style={{ padding: '4px 0' }}>… 以及另外 {selectedPreview.length - 8} 个文件</li>
           )}
         </ul>
+      </ConfirmDialog>
+
+      {/* 智能保留策略确认（v1.0.1 第一步：仅标记，不执行清理） */}
+      <ConfirmDialog
+        open={pendingConfirm?.kind === 'retention'}
+        tone="info"
+        title="应用智能保留策略"
+        confirmLabel="标记保留"
+        busy={busy}
+        onCancel={() => setPendingConfirm(null)}
+        onConfirm={() => pendingConfirm && pendingConfirm.kind === 'retention' && confirmRetention(pendingConfirm.strategy)}
+      >
+        {pendingConfirm?.kind === 'retention' && (
+          <>
+            <p style={{ marginBottom: 8 }}>
+              将为当前可见的 <strong>{unmarkedVisibleGroups.length}</strong> 组重复文件，
+              按「<strong>{RETENTION_OPTIONS.find(o => o.value === pendingConfirm.strategy)?.label}</strong>」策略标记每组保留文件。
+              已手工标记的组自动跳过。
+            </p>
+            <p className="aux">
+              {RETENTION_OPTIONS.find(o => o.value === pendingConfirm.strategy)?.desc}。
+              此步骤只做标记，不删除任何文件；标记后请用「反选其余」勾选待处理文件，再执行隔离或删除。
+            </p>
+          </>
+        )}
       </ConfirmDialog>
     </div>
   );

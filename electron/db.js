@@ -150,6 +150,22 @@ function pickKeeper(files, strategy) {
     enriched.sort((a, b) => mtimeOf(b) - mtimeOf(a));
     return enriched[0];
   }
+  if (strategy === 'ShortestName') {
+    // 文件名最短（同长时取修改时间最新）
+    enriched.sort((a, b) =>
+      (String(a.file_name).length - String(b.file_name).length) ||
+      (mtimeOf(b) - mtimeOf(a))
+    );
+    return enriched[0];
+  }
+  if (strategy === 'LongestName') {
+    // 文件名最长（同长时取修改时间最新）
+    enriched.sort((a, b) =>
+      (String(b.file_name).length - String(a.file_name).length) ||
+      (mtimeOf(b) - mtimeOf(a))
+    );
+    return enriched[0];
+  }
   // Cleanest (默认): (N) 个数最少 → mtime 最新 → 路径最短
   enriched.sort((a, b) =>
     (a._mi.count - b._mi.count) ||
@@ -284,7 +300,7 @@ class Db {
    * @param {string} strategy
    * @returns {{sessionId: number, strategy: string, groupsUpdated: number}}
    */
-  applyRetentionStrategy(sessionId, strategy) {
+  applyRetentionStrategy(sessionId, strategy, options = {}) {
     const sid = sessionId || (() => {
       const row = this.db.prepare(
         "SELECT id FROM scan_sessions WHERE status IN ('completed','cancelled') ORDER BY id DESC LIMIT 1"
@@ -292,26 +308,39 @@ class Db {
       return row ? row.id : null;
     })();
     if (!sid) throw new Error('没有可用的扫描会话');
-    const strat = ['Cleanest', 'Newest', 'Original', 'Highest'].includes(strategy) ? strategy : 'Cleanest';
-    const groups = this.db.prepare(
-      'SELECT id FROM duplicate_groups WHERE scan_session_id = ?'
-    ).all(sid);
+    const strat = ['Cleanest', 'Newest', 'Original', 'Highest', 'ShortestName', 'LongestName'].includes(strategy) ? strategy : 'Cleanest';
+    // 指定组列表（智能保留 UI 按当前可见组应用）；缺省 = 整会话全部组
+    const groupIds = Array.isArray(options.groupIds)
+      ? options.groupIds.map(Number).filter(Number.isInteger)
+      : null;
+    if (groupIds && groupIds.length === 0) {
+      return { sessionId: sid, strategy: strat, groupsUpdated: 0, skipped: 0 };
+    }
+    const groups = groupIds
+      ? this.db.prepare(
+          `SELECT id, retained_file_id FROM duplicate_groups WHERE scan_session_id = ? AND id IN (${groupIds.map(() => '?').join(',')})`
+        ).all(sid, ...groupIds)
+      : this.db.prepare(
+          'SELECT id, retained_file_id FROM duplicate_groups WHERE scan_session_id = ?'
+        ).all(sid);
     const filesStmt = this.db.prepare(
       'SELECT id, canonical_path, file_name, modified_at FROM scanned_files WHERE duplicate_group_id = ?'
     );
     const updateStmt = this.db.prepare(
       'UPDATE duplicate_groups SET retained_file_id = ? WHERE id = ?'
     );
-    let updated = 0;
+    let updated = 0, skipped = 0;
+    const skipMarked = options.skipMarked !== false; // 默认跳过已手工标记的组
     this.transaction(() => {
       for (const g of groups) {
+        if (skipMarked && g.retained_file_id) { skipped++; continue; }
         const files = filesStmt.all(g.id);
         if (!files || files.length === 0) continue;
         const keeper = pickKeeper(files, strat);
         if (keeper) { updateStmt.run(keeper.id, g.id); updated++; }
       }
     });
-    return { sessionId: sid, strategy: strat, groupsUpdated: updated };
+    return { sessionId: sid, strategy: strat, groupsUpdated: updated, skipped };
   }
 
   deleteScanHistory(sessionId) {

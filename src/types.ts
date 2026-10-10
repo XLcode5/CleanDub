@@ -165,6 +165,10 @@ export interface BridgeInvokeMap {
   'get-scan-history': { payload?: never; result: ScanHistoryEntry[] };
   'get-duplicate-groups': { payload?: { sessionId?: number }; result: DuplicateGroupsResult };
   'set-retained-file': { payload: { groupId: number; fileId: number }; result: { ok: boolean } };
+  'apply-retention-strategy': {
+    payload: { sessionId?: number; strategy: string; groupIds?: number[]; skipMarked?: boolean };
+    result: { sessionId: number; strategy: string; groupsUpdated: number; skipped: number };
+  };
   'quarantine-files': { payload: { fileIds: number[] }; result: { ok: number; failed: number; skipped: number } };
   'permanently-delete-files': { payload: { quarantineIds: number[] }; result: { ok: number; failed: number } };
   'restore-quarantined-files': { payload: { quarantineIds: number[] }; result: { ok: number; failed: number; conflicts?: string[] } };

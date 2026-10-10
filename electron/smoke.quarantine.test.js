@@ -99,7 +99,7 @@ const { Quarantine } = require('./quarantine');
   const strategies = ['Cleanest', 'Newest', 'Original', 'Highest'];
   const keeperNames = {};
   for (const strat of strategies) {
-    const result = db.applyRetentionStrategy(sid, strat);
+    const result = db.applyRetentionStrategy(sid, strat, { skipMarked: false });
     const g = db.getDuplicateGroups(sid).groups[0];
     const keeper = g.files.find(f => f.id === g.retained_file_id);
     keeperNames[strat] = keeper ? keeper.file_name : null;

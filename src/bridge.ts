@@ -132,6 +132,11 @@ async function demoInvoke<K extends BridgeChannel>(
     case 'set-retained-file':
       return { ok: true } as BridgeInvokeMap[K]['result'];
 
+    case 'apply-retention-strategy': {
+      const p = payload as BridgeInvokeMap['apply-retention-strategy']['payload'];
+      return { sessionId: p?.sessionId ?? 0, strategy: p?.strategy ?? 'Cleanest', groupsUpdated: 0, skipped: 0 } as BridgeInvokeMap[K]['result'];
+    }
+
     case 'quarantine-files': {
       const p = payload as BridgeInvokeMap['quarantine-files']['payload'];
       const n = p?.fileIds?.length ?? 0;
