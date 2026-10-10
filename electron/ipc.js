@@ -60,6 +60,7 @@ function registerIpc({ ipcMain, getWindow, db, settings, scanManager, quarantine
   handle('get-scan-progress', () => scanManager.getProgress());
 
   // ---------- 历史与分组 ----------
+  // 渲染层期望裸数组（ScanHistoryEntry[]），这里做信封拆包由 handle 统一返回 data
   handle('get-scan-history', () => db.getScanHistory());
   handle('get-duplicate-groups', (p) => db.getDuplicateGroups(p.sessionId || null));
   handle('set-retained-file', (p) => {
@@ -74,22 +75,64 @@ function registerIpc({ ipcMain, getWindow, db, settings, scanManager, quarantine
   });
 
   // ---------- 隔离区 ----------
+  // 渲染层（CleanupPage/ProfilePage）提交 fileIds（scanned_files.id）或 quarantineIds（quarantine_items.id），
+  // 引擎层期望 { scanRoot, files: [{path}] } / { scanRoot, sessionDir, entries }。
+  // 适配：由 fileIds 反查 DB 得到 path；由 quarantineIds 反查得到 scanRoot+sessionDir+entries。
   handle('quarantine-files', (p) => {
-    if (typeof p.scanRoot !== 'string' || !p.scanRoot.trim()) throw new Error('缺少扫描根目录');
-    const files = Array.isArray(p.files) ? p.files : [];
-    return quarantine.moveToQuarantine(p.scanRoot, files);
+    const ids = Array.isArray(p.fileIds) ? p.fileIds.map(Number).filter(Number.isInteger) : [];
+    if (ids.length === 0) throw new Error('没有需要隔离的文件');
+    const files = db.getFilesByIds(ids); // [{canonical_path}]
+    if (files.length === 0) throw new Error('文件不存在或已被处理');
+    const scanRoot = db.scanRootOfFile(ids[0]);
+    if (!scanRoot) throw new Error('无法确定扫描根目录');
+    const r = quarantine.moveToQuarantine(scanRoot, files.map(f => ({ path: f.canonical_path })));
+    return { ok: r.moved, failed: r.failures.length, skipped: 0 };
   });
   handle('restore-quarantined-files', (p) => {
-    if (typeof p.scanRoot !== 'string' || typeof p.sessionDir !== 'string') throw new Error('参数无效');
-    return quarantine.restore(p.scanRoot, p.sessionDir, Array.isArray(p.entries) ? p.entries : []);
+    const ids = Array.isArray(p.quarantineIds) ? p.quarantineIds.map(Number).filter(Number.isInteger) : [];
+    if (ids.length === 0) throw new Error('没有需要恢复的文件');
+    const items = db.getQuarantineItemsByIds(ids);
+    if (items.length === 0) throw new Error('隔离记录不存在');
+    // 按 session 分组处理（引擎按 session 目录操作）
+    let restored = 0, failed = 0;
+    const bySession = new Map();
+    for (const it of items) {
+      if (!bySession.has(it.session_dir)) bySession.set(it.session_dir, []);
+      bySession.get(it.session_dir).push({ original: it.original_path, stored: it.quarantine_path });
+    }
+    for (const [sess, entries] of bySession) {
+      try {
+        const r = quarantine.restore(items[0].scan_root, sess, entries);
+        restored += r.restored; failed += r.failures.length;
+      } catch { failed += entries.length; }
+    }
+    return { ok: restored, failed, conflicts: [] };
   });
   handle('permanently-delete-files', (p) => {
-    if (typeof p.scanRoot !== 'string' || typeof p.sessionDir !== 'string') throw new Error('参数无效');
-    return quarantine.deletePermanent(p.scanRoot, p.sessionDir, Array.isArray(p.entries) ? p.entries : []);
+    const ids = Array.isArray(p.quarantineIds) ? p.quarantineIds.map(Number).filter(Number.isInteger) : [];
+    if (ids.length === 0) throw new Error('没有需要删除的文件');
+    const items = db.getQuarantineItemsByIds(ids);
+    if (items.length === 0) throw new Error('隔离记录不存在');
+    let deleted = 0, failed = 0;
+    const bySession = new Map();
+    for (const it of items) {
+      if (!bySession.has(it.session_dir)) bySession.set(it.session_dir, []);
+      bySession.get(it.session_dir).push({ original: it.original_path, stored: it.quarantine_path });
+    }
+    for (const [sess, entries] of bySession) {
+      try {
+        const r = quarantine.deletePermanent(items[0].scan_root, sess, entries);
+        deleted += r.deleted; failed += r.failures.length;
+      } catch { failed += entries.length; }
+    }
+    return { ok: deleted, failed };
   });
+  // 渲染层 ProfilePage 不传 scanRoot（读全部隔离记录），改走 SQLite（恢复/删除仍走磁盘 manifest）
   handle('get-quarantine-items', (p) => {
-    if (typeof p.scanRoot !== 'string' || !p.scanRoot.trim()) throw new Error('缺少扫描根目录');
-    return quarantine.loadSessions(p.scanRoot);
+    if (p && typeof p.scanRoot === 'string' && p.scanRoot.trim()) {
+      return quarantine.loadSessions(p.scanRoot);
+    }
+    return db.getQuarantineItems(p && p.status);
   });
 
   // ---------- 设置与日志 ----------

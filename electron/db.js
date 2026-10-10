@@ -11,6 +11,11 @@ let Database = null;
 let driver = 'better-sqlite3';
 try {
   Database = require('better-sqlite3');
+  // 探测必须做实例化：require 成功不代表 ABI 匹配（.node 二进制在实例化时才 dlopen）。
+  // 预编译二进制可能是 Electron 版（ABI 130），在纯 Node（ABI 147）下 require 成功但 new 失败。
+  const probe = new Database(':memory:');
+  probe.exec('CREATE TABLE _probe(a)');
+  probe.close();
 } catch {
   // Electron ≥33 / Node ≥22 内置 node:sqlite（同步 API，够用且零依赖）
   try {
@@ -220,6 +225,39 @@ class Db {
       this.db.prepare('DELETE FROM scan_sessions WHERE id = ?').run(sessionId);
     });
     return { ok: true };
+  }
+
+  // ---------- IPC 适配辅助（渲染层提交 id，引擎层需要 path/session） ----------
+  getFilesByIds(ids) {
+    const out = [];
+    const stmt = this.db.prepare(
+      'SELECT id, canonical_path, file_name, file_size FROM scanned_files WHERE id = ?'
+    );
+    for (const id of ids) {
+      const row = stmt.get(id);
+      if (row) out.push(row);
+    }
+    return out;
+  }
+
+  scanRootOfFile(fileId) {
+    const row = this.db.prepare(`
+      SELECT r.directory_path AS root FROM scanned_files f
+      JOIN scan_roots r ON r.scan_session_id = f.scan_session_id
+      WHERE f.id = ? LIMIT 1`).get(fileId);
+    return row ? row.root : null;
+  }
+
+  getQuarantineItemsByIds(ids) {
+    const out = [];
+    const stmt = this.db.prepare(
+      'SELECT id, original_path, quarantine_path, session_dir, scan_root FROM quarantine_items WHERE id = ?'
+    );
+    for (const id of ids) {
+      const row = stmt.get(id);
+      if (row) out.push(row);
+    }
+    return out;
   }
 
   // ---------- quarantine_items ----------
