@@ -201,6 +201,86 @@ function registerIpc({ ipcMain, getWindow, db, settings, scanManager, quarantine
   handle('get-app-settings', () => settings.get());
   handle('update-app-settings', (p) => settings.update(p));
   handle('get-operation-logs', (p) => db.getOperationLogs(p.limit));
+
+  // ---------- 检查更新（对齐 dedup_server.ps1 Check-UpdateAsync 语义） ----------
+  const UPDATE_URL = 'https://api.github.com/repos/XLcode5/CleanDub/releases/latest';
+  // 本地版本以 package.json 为准（打包后与安装包版本一致）
+  let localVersion = '0.0.0';
+  try {
+    localVersion = String(require('../package.json').version || '0.0.0');
+  } catch { /* dev 环境兜底 */ }
+
+  function compareVersion(local, remote) {
+    // 语义对齐 PS 版 Compare-Version：逐段数字比较，返回 1=远程更新 / -1=本地更新 / 0=相同
+    const l = String(local).replace(/^v/, '').split('.').map(Number);
+    const r = String(remote).replace(/^v/, '').split('.').map(Number);
+    for (let i = 0; i < Math.max(l.length, r.length); i++) {
+      const lv = l[i] || 0, rv = r[i] || 0;
+      if (rv > lv) return 1;
+      if (rv < lv) return -1;
+    }
+    return 0;
+  }
+
+  handle('check-updates', async () => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10000); // 10s 超时，对齐 PS 版 TimeoutSec 10
+    try {
+      const resp = await fetch(UPDATE_URL, {
+        signal: controller.signal,
+        headers: { 'User-Agent': 'CleanDub-Updater', 'Accept': 'application/vnd.github+json' }
+      });
+      if (resp.status === 404) {
+        // 仓库尚无任何 Release（新项目常见）——不算错误，如实告知
+        return {
+          ok: true,
+          localVersion,
+          latestVersion: '',
+          updateAvailable: false,
+          downloadUrl: null,
+          releaseNotes: '',
+          releaseUrl: 'https://github.com/XLcode5/CleanDub/releases',
+          checkedAt: new Date().toISOString()
+        };
+      }
+      if (!resp.ok) throw new Error('GitHub API HTTP ' + resp.status);
+      const rel = await resp.json();
+      const latest = String(rel.tag_name || '').replace(/^v/, '');
+      if (!latest) throw new Error('发布标签为空');
+      // 找 .exe 安装包资产（对齐 PS 版 $asset.name -match '\.exe$'）
+      let downloadUrl = null;
+      for (const asset of (rel.assets || [])) {
+        if (/\.exe$/i.test(asset.name || '')) { downloadUrl = asset.browser_download_url; break; }
+      }
+      const cmp = compareVersion(localVersion, latest);
+      return {
+        ok: true,
+        localVersion,
+        latestVersion: latest,
+        updateAvailable: cmp > 0,
+        downloadUrl,
+        releaseNotes: String(rel.body || '').slice(0, 2000), // 防超长
+        releaseUrl: rel.html_url || '',
+        checkedAt: new Date().toISOString()
+      };
+    } catch (e) {
+      if (e.name === 'AbortError') throw new Error('检查更新超时（10 秒）');
+      throw new Error('检查更新失败: ' + String(e.message || e));
+    } finally {
+      clearTimeout(timer);
+    }
+  });
+
+  // 用系统浏览器打开外链（下载页 / 仓库页），不做应用内下载替换
+  handle('open-external', async (p) => {
+    const url = String(p.url || '');
+    if (!/^https:\/\/github\.com\/XLcode5\//i.test(url)) {
+      throw new Error('仅允许打开 GitHub 官方发布链接');
+    }
+    const { shell } = require('electron');
+    await shell.openExternal(url);
+    return { ok: true };
+  });
 }
 
 module.exports = { registerIpc };

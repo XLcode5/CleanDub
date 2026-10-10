@@ -13,7 +13,8 @@ const DEFAULTS = {
   detectLinks: true,
   recurse: true,
   excludeDirs: [],
-  quarantineDir: ''  // 隔离区位置：空 = 默认各扫描根下 _dedup_quarantine；设置后所有扫描共用此专用目录
+  quarantineDir: '',  // 隔离区位置：空 = 默认各扫描根下 _dedup_quarantine；设置后所有扫描共用此专用目录
+  confirmBeforeDelete: true  // 清理前要求二次确认（默认开，规格 7.6）
 };
 
 const VALID_VERIFY = new Set(['Full', 'Head', 'Name', 'Size']);
@@ -33,6 +34,7 @@ class Settings {
       if (typeof raw.detectLinks === 'boolean') s.detectLinks = raw.detectLinks;
       if (typeof raw.recurse === 'boolean') s.recurse = raw.recurse;
       if (typeof raw.quarantineDir === 'string') s.quarantineDir = raw.quarantineDir.trim();
+      if (typeof raw.confirmBeforeDelete === 'boolean') s.confirmBeforeDelete = raw.confirmBeforeDelete;
       if (Array.isArray(raw.excludeDirs)) {
         s.excludeDirs = raw.excludeDirs.filter(x => typeof x === 'string' && x.trim());
       }

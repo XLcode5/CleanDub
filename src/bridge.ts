@@ -167,6 +167,21 @@ async function demoInvoke<K extends BridgeChannel>(
     case 'get-operation-logs':
       return demoLogs as BridgeInvokeMap[K]['result'];
 
+    case 'check-updates':
+      return {
+        ok: true,
+        localVersion: '1.0.0',
+        latestVersion: '1.0.0',
+        updateAvailable: false,
+        downloadUrl: null,
+        releaseNotes: '演示模式：此处将显示 GitHub Release 说明。',
+        releaseUrl: 'https://github.com/XLcode5/CleanDub/releases',
+        checkedAt: new Date().toISOString()
+      } as BridgeInvokeMap[K]['result'];
+
+    case 'open-external':
+      return { ok: true } as BridgeInvokeMap[K]['result'];
+
     default:
       throw new Error('演示模式不支持的通道: ' + String(channel));
   }

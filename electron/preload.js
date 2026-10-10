@@ -22,6 +22,8 @@ const INVOKE_CHANNELS = new Set([
   'delete-scan-history',
   'get-app-settings',
   'update-app-settings',
+  'check-updates',
+  'open-external',
   'get-operation-logs',
   'window:is-maximized'
 ]);

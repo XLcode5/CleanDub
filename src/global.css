@@ -508,6 +508,10 @@ a:hover { text-decoration: underline; }
 .switch:disabled { opacity: 0.55; cursor: not-allowed; }
 .switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
+/* 检查更新按钮的旋转动画 */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 0.9s linear infinite; }
+
 /* ---------- 扫描选项面板 ---------- */
 .scan-options {
   display: flex;

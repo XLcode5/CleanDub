@@ -3,7 +3,7 @@
  * 字段命名遵循 docs/cleandub-ui/08-data-model.md。
  */
 
-export type PageKey = 'home' | 'cleanup' | 'profile';
+export type PageKey = 'home' | 'cleanup' | 'profile' | 'settings';
 
 export type ScanState =
   | 'idle'
@@ -119,6 +119,18 @@ export interface AppSettings {
   minSize?: number;
   excludeDirs: string[];
   quarantineDir?: string;
+  confirmBeforeDelete?: boolean;
+}
+
+export interface UpdateCheckResult {
+  ok: boolean;
+  localVersion: string;
+  latestVersion: string;
+  updateAvailable: boolean;
+  downloadUrl: string | null;
+  releaseNotes: string;
+  releaseUrl: string;
+  checkedAt: string;
 }
 
 export interface BridgeInvokeMap {
@@ -150,6 +162,8 @@ export interface BridgeInvokeMap {
   'get-app-settings': { payload?: never; result: AppSettings };
   'update-app-settings': { payload: Partial<AppSettings>; result: AppSettings };
   'get-operation-logs': { payload?: { limit?: number }; result: OperationLog[] };
+  'check-updates': { payload?: never; result: UpdateCheckResult };
+  'open-external': { payload: { url: string }; result: { ok: boolean } };
 }
 
 export type BridgeChannel = keyof BridgeInvokeMap;

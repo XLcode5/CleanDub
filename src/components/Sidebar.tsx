@@ -14,7 +14,7 @@ const NAV_ITEMS: Array<{ key: PageKey; label: string; icon: typeof Home }> = [
 ];
 
 /** 左侧固定导航 —— 规格 04：160-180px 宽 + 当前页浅蓝色高亮 + 底部版本号 */
-export function Sidebar({ current, onNavigate, version = 'v0.1.0' }: SidebarProps) {
+export function Sidebar({ current, onNavigate, version = 'v1.0.0' }: SidebarProps) {
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
@@ -58,8 +58,8 @@ export function Sidebar({ current, onNavigate, version = 'v0.1.0' }: SidebarProp
           type="button"
           className="btn btn-ghost btn-icon btn-sm"
           aria-label="设置"
-          title="设置（暂未实现）"
-          disabled
+          title="设置"
+          onClick={() => onNavigate('settings')}
         >
           <Settings size={14} strokeWidth={1.8} />
         </button>
