@@ -299,6 +299,6 @@ public class AppSettings
     public VerifyLevel Verify { get; set; } = VerifyLevel.Full;
     public bool DetectLinks { get; set; } = true;
     public bool Recurse { get; set; } = true;
-    public bool DarkTheme { get; set; } = true;
+    public bool DarkTheme { get; set; } = false;
     public int HeadKB { get; set; } = 32;
 }

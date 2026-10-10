@@ -194,7 +194,7 @@ public class MainForm : Form
         page.Controls.Add(statsRow);
 
         // ---- 扫描设置卡片 ----
-        var card = new Panel { Location = new Point(24, 46), Size = new Size(700, 196), BorderStyle = BorderStyle.FixedSingle, BackColor = MacTheme.CardFace };
+        var card = new Panel { Location = new Point(24, 46), Size = new Size(700, 196), BorderStyle = BorderStyle.None, BackColor = MacTheme.CardFace };
         page.Controls.Add(card);
 
         int cx = 22; // 卡片内左边距
@@ -206,7 +206,7 @@ public class MainForm : Form
             : _settings.DefaultPath;
         card.Controls.Add(_txtPath);
 
-        var btnBrowse = new Button { Text = "浏览…", Location = new Point(508, 37), Size = new Size(84, 30), FlatStyle = FlatStyle.Flat };
+        var btnBrowse = new Button { Text = "浏览…", Location = new Point(508, 37), Size = new Size(84, 30), FlatStyle = FlatStyle.Flat, UseVisualStyleBackColor = false };
         btnBrowse.Click += (s, e) =>
         {
             using var dlg = new FolderBrowserDialog { Description = "选择扫描目录", SelectedPath = _txtPath.Text, UseDescriptionForTitle = true };
@@ -285,7 +285,7 @@ public class MainForm : Form
             Text = "开始扫描",
             Location = new Point(430, 141),
             Size = new Size(110, 34),
-            FlatStyle = FlatStyle.Flat,
+            FlatStyle = FlatStyle.Standard,
             BackColor = MacTheme.Accent,
             ForeColor = Color.White
         };
@@ -298,7 +298,7 @@ public class MainForm : Form
             Location = new Point(548, 141),
             Size = new Size(76, 34),
             Enabled = false,
-            FlatStyle = FlatStyle.Flat,
+            FlatStyle = FlatStyle.Standard,
             BackColor = MacTheme.Danger,
             ForeColor = Color.White
         };
@@ -351,11 +351,11 @@ public class MainForm : Form
         };
         actionRow.Controls.Add(_lblSummary);
 
-        _btnDelete = new Button { Text = "永久删除", Enabled = false, Size = new Size(96, 32), FlatStyle = FlatStyle.Flat, BackColor = MacTheme.Danger, ForeColor = Color.White };
+        _btnDelete = new Button { Text = "永久删除", Enabled = false, Size = new Size(96, 32), FlatStyle = FlatStyle.Standard, BackColor = MacTheme.Danger, ForeColor = Color.White };
         _btnDelete.Click += async (s, e) => await RunCleanup(true);
-        _btnQuarantine = new Button { Text = "移入隔离区", Enabled = false, Size = new Size(110, 32), FlatStyle = FlatStyle.Flat, BackColor = MacTheme.Accent, ForeColor = Color.White };
+        _btnQuarantine = new Button { Text = "移入隔离区", Enabled = false, Size = new Size(110, 32), FlatStyle = FlatStyle.Standard, BackColor = MacTheme.Accent, ForeColor = Color.White };
         _btnQuarantine.Click += async (s, e) => await RunCleanup(false);
-        _btnExport = new Button { Text = "导出 CSV", Enabled = false, Size = new Size(96, 32), FlatStyle = FlatStyle.Flat };
+        _btnExport = new Button { Text = "导出 CSV", Enabled = false, Size = new Size(96, 32), FlatStyle = FlatStyle.Flat, UseVisualStyleBackColor = false };
         _btnExport.Click += async (s, e) => await ExportCsv();
         actionRow.Controls.Add(_btnDelete);
         actionRow.Controls.Add(_btnQuarantine);
@@ -443,7 +443,7 @@ public class MainForm : Form
         _segHistoryFilter.SelectedIndexChanged += (s, e) => ApplyHistoryFilter();
         top.Controls.Add(_segHistoryFilter);
 
-        var btnRefresh = new Button { Text = "刷新", Size = new Size(76, 30), Location = new Point(340, 4), FlatStyle = FlatStyle.Flat };
+        var btnRefresh = new Button { Text = "刷新", Size = new Size(76, 30), Location = new Point(340, 4), FlatStyle = FlatStyle.Flat, UseVisualStyleBackColor = false };
         btnRefresh.Click += (s, e) => LoadHistory();
         top.Controls.Add(btnRefresh);
         top.Resize += (s, e) => btnRefresh.Left = top.Width - btnRefresh.Width - 2;
@@ -493,7 +493,7 @@ public class MainForm : Form
         {
             Text = "去扫描",
             Size = new Size(110, 32),
-            FlatStyle = FlatStyle.Flat,
+            FlatStyle = FlatStyle.Standard,
             BackColor = MacTheme.Accent,
             ForeColor = Color.White
         };
@@ -553,13 +553,13 @@ public class MainForm : Form
             TextAlign = ContentAlignment.MiddleLeft,
             Name = "muted"
         };
-        _btnRestore = new Button { Text = "还原选中", Size = new Size(96, 30), Enabled = false, FlatStyle = FlatStyle.Flat, BackColor = MacTheme.Accent, ForeColor = Color.White };
+        _btnRestore = new Button { Text = "还原选中", Size = new Size(96, 30), Enabled = false, FlatStyle = FlatStyle.Standard, BackColor = MacTheme.Accent, ForeColor = Color.White };
         _btnRestore.Click += (s, e) => RestoreSelected();
-        _btnDeleteSelected = new Button { Text = "删除选中", Size = new Size(96, 30), Enabled = false, FlatStyle = FlatStyle.Flat, BackColor = MacTheme.Danger, ForeColor = Color.White };
+        _btnDeleteSelected = new Button { Text = "删除选中", Size = new Size(96, 30), Enabled = false, FlatStyle = FlatStyle.Standard, BackColor = MacTheme.Danger, ForeColor = Color.White };
         _btnDeleteSelected.Click += (s, e) => DeleteSelected();
-        _btnPurge = new Button { Text = "全部清空", Size = new Size(96, 30), Enabled = false, FlatStyle = FlatStyle.Flat, BackColor = MacTheme.Danger, ForeColor = Color.White };
+        _btnPurge = new Button { Text = "全部清空", Size = new Size(96, 30), Enabled = false, FlatStyle = FlatStyle.Standard, BackColor = MacTheme.Danger, ForeColor = Color.White };
         _btnPurge.Click += (s, e) => PurgeAll();
-        var btnOpen = new Button { Text = "打开目录", Size = new Size(88, 30), FlatStyle = FlatStyle.Flat };
+        var btnOpen = new Button { Text = "打开目录", Size = new Size(88, 30), FlatStyle = FlatStyle.Flat, UseVisualStyleBackColor = false };
         btnOpen.Click += (s, e) =>
         {
             var q = QuarantineDir();
@@ -568,7 +568,7 @@ public class MainForm : Form
             else
                 MessageBox.Show(this, "当前扫描目录下还没有隔离区。", "隔离区为空", MessageBoxButtons.OK, MessageBoxIcon.Information);
         };
-        var btnRefresh = new Button { Text = "刷新", Size = new Size(76, 30), FlatStyle = FlatStyle.Flat };
+        var btnRefresh = new Button { Text = "刷新", Size = new Size(76, 30), FlatStyle = FlatStyle.Flat, UseVisualStyleBackColor = false };
         btnRefresh.Click += (s, e) => LoadQuarantine();
 
         top.Controls.Add(_btnRestore);
