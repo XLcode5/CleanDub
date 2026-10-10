@@ -89,14 +89,14 @@ function registerIpc({ ipcMain, getWindow, db, settings, scanManager, quarantine
   // 渲染层（CleanupPage/ProfilePage）提交 fileIds（scanned_files.id）或 quarantineIds（quarantine_items.id），
   // 引擎层期望 { scanRoot, files: [{path}] } / { scanRoot, sessionDir, entries }。
   // 适配：由 fileIds 反查 DB 得到 path；由 quarantineIds 反查得到 scanRoot+sessionDir+entries。
-  handle('quarantine-files', (p) => {
+  handle('quarantine-files', async (p) => {
     const ids = Array.isArray(p.fileIds) ? p.fileIds.map(Number).filter(Number.isInteger) : [];
     if (ids.length === 0) throw new Error('没有需要隔离的文件');
     const files = db.getFilesByIds(ids); // [{canonical_path}]
     if (files.length === 0) throw new Error('文件不存在或已被处理');
     const scanRoot = db.scanRootOfFile(ids[0]);
     if (!scanRoot) throw new Error('无法确定扫描根目录');
-    const r = quarantine.moveToQuarantine(scanRoot, files.map(f => ({ path: f.canonical_path })));
+    const r = await quarantine.moveToQuarantine(scanRoot, files.map(f => ({ path: f.canonical_path })));
     return { ok: r.moved, failed: r.failures.length, skipped: 0 };
   });
   handle('restore-quarantined-files', (p) => {
