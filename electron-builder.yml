@@ -8,6 +8,7 @@ asar: true
 electronLanguages:
   - zh-CN
   - en-US
+# 瘦身 v1.0.1：LZMA solid 最大压缩（顶层 compression 对 NSIS 生效；nsis 节点无此选项）
 compression: maximum
 files:
   - electron/**
@@ -26,6 +27,3 @@ nsis:
   allowToChangeInstallationDirectory: true
   perMachine: false
   shortcutName: CleanDub
-  # 瘦身 v1.0.1：LZMA solid 最大压缩（安装时间略增但体积最小）
-  compression: maximum
-  solidCompression: true
