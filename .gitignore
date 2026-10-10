@@ -41,3 +41,7 @@ _testdata/
 # Node / Electron
 node_modules/
 dist-renderer/
+
+# WinForms / .NET 构建产物
+bin/
+obj/
