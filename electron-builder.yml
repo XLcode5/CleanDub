@@ -3,11 +3,20 @@ productName: CleanDub
 directories:
   output: dist
   buildResources: build
+asar: true
+# 瘦身 v1.0.1：只保留中英文 locale，剔除其余 ~40 种语言资源
+electronLanguages:
+  - zh-CN
+  - en-US
+compression: maximum
 files:
   - electron/**
+  # 打包瘦身 v1.0.1：测试与文档文件不进安装包
+  - "!electron/smoke*.test.js"
+  - "!electron/boot-test.js"
+  - "!electron/README.md"
   - dist-renderer/**
   - package.json
-asar: true
 win:
   target:
     - nsis
@@ -17,3 +26,6 @@ nsis:
   allowToChangeInstallationDirectory: true
   perMachine: false
   shortcutName: CleanDub
+  # 瘦身 v1.0.1：LZMA solid 最大压缩（安装时间略增但体积最小）
+  compression: maximum
+  solidCompression: true
