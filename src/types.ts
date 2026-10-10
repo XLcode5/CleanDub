@@ -114,13 +114,28 @@ export interface AppSettings {
   defaultPath: string;
   strategy: string;
   verify: 'Full' | 'Head' | 'Name' | 'Size';
+  recurse?: boolean;
   detectLinks: boolean;
   excludeDirs: string[];
+  minSize?: number;
 }
 
 export interface BridgeInvokeMap {
   'choose-directories': { payload?: never; result: { paths: string[] } };
-  'start-scan': { payload: { roots: string[]; options?: { minSize?: number; verify?: string } }; result: ScanStateEvent };
+  'start-scan': {
+    payload: {
+      roots: string[];
+      options?: {
+        minSize?: number;
+        verify?: AppSettings['verify'];
+        excludeDirs?: string[];
+        /** 渲染进程会传递，主进程当前忽略亦可 */
+        recurse?: boolean;
+        detectLinks?: boolean;
+      };
+    };
+    result: ScanStateEvent;
+  };
   'cancel-scan': { payload?: never; result: { ok: boolean; reason?: string } };
   'get-scan-progress': { payload?: never; result: ScanProgress };
   'get-scan-history': { payload?: never; result: ScanHistoryEntry[] };

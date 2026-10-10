@@ -45,7 +45,11 @@ function registerIpc({ ipcMain, getWindow, db, settings, scanManager, quarantine
     const options = {
       minSize: Number.isFinite(p.minSize) ? p.minSize : 1,
       verify: p.verify || s.verify,
-      excludeDirs: Array.isArray(p.excludeDirs) ? p.excludeDirs : s.excludeDirs
+      excludeDirs: Array.isArray(p.excludeDirs) ? p.excludeDirs : s.excludeDirs,
+      // 参数链打通：payload 优先，缺省回落到 settings（settings 缺省再看 scanner 默认）
+      recurse: typeof p.recurse === 'boolean' ? p.recurse : (s.recurse !== false),
+      detectLinks: typeof p.detectLinks === 'boolean' ? p.detectLinks : (s.detectLinks === true),
+      strategy: typeof p.strategy === 'string' && p.strategy ? p.strategy : s.strategy
     };
     // 异步执行，立即返回 sessionId；进度通过 scan-progress 事件推送（长任务不阻塞 UI）
     const promise = scanManager.startScan(roots, options);
@@ -67,6 +71,13 @@ function registerIpc({ ipcMain, getWindow, db, settings, scanManager, quarantine
     const groupId = Number(p.groupId), fileId = Number(p.fileId);
     if (!Number.isInteger(groupId) || !Number.isInteger(fileId)) throw new Error('参数无效');
     return db.setRetainedFile(groupId, fileId);
+  });
+  // 批量保留策略：一次性为整个会话的所有重复组选定 retained_file_id
+  // strategy: Cleanest / Newest / Original / Highest（对齐 dedup_core.ps1 Get-Keeper2）
+  handle('apply-retention-strategy', (p) => {
+    const sid = Number.isInteger(p && p.sessionId) ? p.sessionId : null;
+    const strategy = (p && typeof p.strategy === 'string' && p.strategy) || settings.get().strategy || 'Cleanest';
+    return db.applyRetentionStrategy(sid, strategy);
   });
   handle('delete-scan-history', (p) => {
     const id = Number(p.sessionId);
@@ -92,40 +103,91 @@ function registerIpc({ ipcMain, getWindow, db, settings, scanManager, quarantine
     const ids = Array.isArray(p.quarantineIds) ? p.quarantineIds.map(Number).filter(Number.isInteger) : [];
     if (ids.length === 0) throw new Error('没有需要恢复的文件');
     const items = db.getQuarantineItemsByIds(ids);
-    if (items.length === 0) throw new Error('隔离记录不存在');
+    if (items.length === 0) {
+      const err = new Error('隔离记录不存在（可能已被恢复/删除，或扫描历史已清空）');
+      err.code = 'QUARANTINE_NOT_FOUND';
+      throw err;
+    }
+    // 只处理仍处于 quarantined 状态的记录；已 restored/deleted 的跳过
+    const activeItems = items.filter(it => !it.status || it.status === 'quarantined');
+    const skippedIds = items.filter(it => it.status && it.status !== 'quarantined').map(it => it.id);
+    const foundIds = new Set(items.map(it => it.id));
+    const missingIds = ids.filter(id => !foundIds.has(id));
+    if (activeItems.length === 0) {
+      return { ok: 0, failed: 0, skipped: skippedIds.length, missing: missingIds.length, conflicts: [] };
+    }
     // 按 session 分组处理（引擎按 session 目录操作）
     let restored = 0, failed = 0;
+    const succeededIds = [];
     const bySession = new Map();
-    for (const it of items) {
-      if (!bySession.has(it.session_dir)) bySession.set(it.session_dir, []);
-      bySession.get(it.session_dir).push({ original: it.original_path, stored: it.quarantine_path });
+    for (const it of activeItems) {
+      const key = it.scan_root + '||' + it.session_dir;
+      if (!bySession.has(key)) bySession.set(key, { scanRoot: it.scan_root, sess: it.session_dir, entries: [], ids: [] });
+      const b = bySession.get(key);
+      b.entries.push({ original: it.original_path, stored: it.quarantine_path });
+      b.ids.push(it.id);
     }
-    for (const [sess, entries] of bySession) {
-      try {
-        const r = quarantine.restore(items[0].scan_root, sess, entries);
-        restored += r.restored; failed += r.failures.length;
-      } catch { failed += entries.length; }
-    }
-    return { ok: restored, failed, conflicts: [] };
+    return (async () => {
+      for (const { scanRoot, sess, entries, ids: sessionIds } of bySession.values()) {
+        try {
+          const r = await quarantine.restore(scanRoot, sess, entries);
+          restored += r.restored; failed += r.failures.length;
+          // 用引擎返回的成功 stored 路径反查 DB id，精准标记 restored
+          const okSet = new Set((r.succeededStored || []).map(x => String(x).toLowerCase()));
+          for (let i = 0; i < entries.length; i++) {
+            if (okSet.has(String(entries[i].stored).toLowerCase())) succeededIds.push(sessionIds[i]);
+          }
+        } catch { failed += entries.length; }
+      }
+      if (succeededIds.length > 0) {
+        try { db.markQuarantineItems(succeededIds, 'restored', { restored_at: new Date().toISOString() }); } catch {}
+      }
+      return { ok: restored, failed, skipped: skippedIds.length, missing: missingIds.length, conflicts: [] };
+    })();
   });
   handle('permanently-delete-files', (p) => {
     const ids = Array.isArray(p.quarantineIds) ? p.quarantineIds.map(Number).filter(Number.isInteger) : [];
     if (ids.length === 0) throw new Error('没有需要删除的文件');
     const items = db.getQuarantineItemsByIds(ids);
-    if (items.length === 0) throw new Error('隔离记录不存在');
+    if (items.length === 0) {
+      const err = new Error('隔离记录不存在（可能已被恢复/删除，或扫描历史已清空）');
+      err.code = 'QUARANTINE_NOT_FOUND';
+      throw err;
+    }
+    // 已 deleted 的跳过；restored 的不在隔离区，也跳过
+    const activeItems = items.filter(it => !it.status || it.status === 'quarantined');
+    const skippedIds = items.filter(it => it.status && it.status !== 'quarantined').map(it => it.id);
+    const foundIds = new Set(items.map(it => it.id));
+    const missingIds = ids.filter(id => !foundIds.has(id));
+    if (activeItems.length === 0) {
+      return { ok: 0, failed: 0, skipped: skippedIds.length, missing: missingIds.length };
+    }
     let deleted = 0, failed = 0;
+    const succeededIds = [];
     const bySession = new Map();
-    for (const it of items) {
-      if (!bySession.has(it.session_dir)) bySession.set(it.session_dir, []);
-      bySession.get(it.session_dir).push({ original: it.original_path, stored: it.quarantine_path });
+    for (const it of activeItems) {
+      const key = it.scan_root + '||' + it.session_dir;
+      if (!bySession.has(key)) bySession.set(key, { scanRoot: it.scan_root, sess: it.session_dir, entries: [], ids: [] });
+      const b = bySession.get(key);
+      b.entries.push({ original: it.original_path, stored: it.quarantine_path });
+      b.ids.push(it.id);
     }
-    for (const [sess, entries] of bySession) {
-      try {
-        const r = quarantine.deletePermanent(items[0].scan_root, sess, entries);
-        deleted += r.deleted; failed += r.failures.length;
-      } catch { failed += entries.length; }
-    }
-    return { ok: deleted, failed };
+    return (async () => {
+      for (const { scanRoot, sess, entries, ids: sessionIds } of bySession.values()) {
+        try {
+          const r = await quarantine.deletePermanent(scanRoot, sess, entries);
+          deleted += r.deleted; failed += r.failures.length;
+          const okSet = new Set((r.succeededStored || []).map(x => String(x).toLowerCase()));
+          for (let i = 0; i < entries.length; i++) {
+            if (okSet.has(String(entries[i].stored).toLowerCase())) succeededIds.push(sessionIds[i]);
+          }
+        } catch { failed += entries.length; }
+      }
+      if (succeededIds.length > 0) {
+        try { db.markQuarantineItems(succeededIds, 'deleted'); } catch {}
+      }
+      return { ok: deleted, failed, skipped: skippedIds.length, missing: missingIds.length };
+    })();
   });
   // 渲染层 ProfilePage 不传 scanRoot（读全部隔离记录），改走 SQLite（恢复/删除仍走磁盘 manifest）
   handle('get-quarantine-items', (p) => {

@@ -48,7 +48,7 @@
   --pad-card: 14px 16px;
 
   /* 侧栏 */
-  --sidebar-w: 170px;
+  --sidebar-w: 200px;
 
   /* 过渡 */
   --trans: 140ms cubic-bezier(.4, 0, .2, 1);
@@ -180,7 +180,7 @@ a:hover { text-decoration: underline; }
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 14px 14px 10px;
+  padding: 14px 16px 10px;
   font-weight: 600;
   font-size: 14px;
 }
@@ -191,7 +191,7 @@ a:hover { text-decoration: underline; }
 }
 .sidebar-nav {
   flex: 1;
-  padding: 4px 8px;
+  padding: 4px 10px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -200,7 +200,7 @@ a:hover { text-decoration: underline; }
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 7px 10px;
+  padding: 7px 12px;
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
   background: transparent;
@@ -447,7 +447,23 @@ a:hover { text-decoration: underline; }
 }
 
 /* ---------- 环形进度 ---------- */
-.ring-wrap { display: inline-flex; align-items: center; justify-content: center; }
+.ring-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.ring-center-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  font-family: var(--font-en);
+  font-weight: 600;
+  font-size: 18px;
+  pointer-events: none;
+}
 .ring-bg { stroke: var(--divider); }
 .ring-fg { stroke: var(--accent); transition: stroke-dashoffset 200ms ease-out; }
 
@@ -460,6 +476,74 @@ a:hover { text-decoration: underline; }
 .empty-state svg { color: #B8C0C9; margin-bottom: 12px; }
 .empty-state-title { font-size: var(--fs-body-lg); font-weight: 500; color: var(--ink); margin-bottom: 4px; }
 .empty-state-desc { font-size: var(--fs-aux); }
+
+/* ---------- 开关（checkbox  styled as switch） ---------- */
+.switch {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 32px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--border);
+  position: relative;
+  cursor: pointer;
+  transition: background var(--trans);
+  flex-shrink: 0;
+  margin: 0;
+}
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left var(--trans);
+  box-shadow: 0 1px 2px rgba(31, 35, 40, 0.2);
+}
+.switch:checked { background: var(--accent); }
+.switch:checked::after { left: 16px; }
+.switch:disabled { opacity: 0.55; cursor: not-allowed; }
+.switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ---------- 扫描选项面板 ---------- */
+.scan-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.scan-option-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.scan-option-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.scan-option-label .strong { font-size: var(--fs-body); font-weight: 500; }
+.exclude-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+.exclude-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px;
+  background: var(--bg);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-sm);
+}
 
 /* ---------- 对话框 ---------- */
 .dialog-overlay {
@@ -571,6 +655,12 @@ a:hover { text-decoration: underline; }
 .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+/* grid 默认 align-items: stretch，但要保证卡片本身撑满网格单元格，
+   且 StatCard 等子卡高度一致，避免「最近一次扫描」等带 hint 的卡高于其它 */
+.grid > .card { height: 100%; }
+.grid > .stat-card { min-height: 86px; display: flex; flex-direction: column; }
+.grid-2 > .card, .grid-3 > .card, .grid-4 > .card { display: flex; flex-direction: column; }
+.grid-2 > .card > .card-body, .grid-3 > .card > .card-body, .grid-4 > .card > .card-body { flex: 1; }
 @media (max-width: 1100px) { .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 900px) { .grid-3 { grid-template-columns: 1fr; } .grid-2 { grid-template-columns: 1fr; } }
 

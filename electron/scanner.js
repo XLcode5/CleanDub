@@ -86,7 +86,14 @@ class ScanManager {
   /**
    * 启动扫描。同一时刻只允许一个扫描（防止快速重复点击）。
    * @param {string[]} roots - 扫描根目录数组（后端自行验证）
-   * @param {{minSize?: number, excludeDirs?: string[], verify?: string}} [options]
+   * @param {{minSize?: number, excludeDirs?: string[], verify?: string,
+   *          recurse?: boolean, detectLinks?: boolean, strategy?: string}} [options]
+   *   recurse:    false 时只枚举根目录第一层文件，不进入子目录（默认 true）
+   *   detectLinks:true 时跟随符号链接（带 realpath 环路检测）；false 时跳过（默认 false，
+   *               与 dedup_core.ps1 的 -NoLinkCheck 语义相反——dedup 默认 DetectLinks=true，
+   *               这里默认 false 是为了向后兼容既有 smoke 行为；调用方须显式传 true）
+   *   strategy:   保留策略（Cleanest/Newest/Original/Highest），仅写入会话元数据供 UI 读取，
+   *               不影响扫描结果本身（保留策略通过 apply-retention-strategy 应用）
    */
   async startScan(roots, options = {}) {
     if (this.current) {
@@ -110,6 +117,11 @@ class ScanManager {
     const minSize = Number.isFinite(options.minSize) ? options.minSize : 1;
     // verify: Full（全量哈希，默认）/ Head（头部哈希）——Name/Size 不用于内容判重，仅保留兼容
     const verifyMode = options.verify === 'Head' ? 'Head' : 'Full';
+    // 扫描行为开关（链路打通：UI payload → IPC → scanner）
+    const recurse = options.recurse !== false;             // 缺省 true
+    const detectLinks = options.detectLinks === true;      // 缺省 false（跳过符号链接）
+    const strategy = typeof options.strategy === 'string' && options.strategy
+      ? options.strategy : 'Cleanest';
 
     const startedAt = new Date();
     const sessionId = this.db.insertScanSession({
@@ -138,7 +150,7 @@ class ScanManager {
 
     const t0 = Date.now();
     try {
-      const result = await this._pipeline(normRoots, { minSize, excludeDirs, verifyMode, t0 });
+      const result = await this._pipeline(normRoots, { minSize, excludeDirs, verifyMode, recurse, detectLinks, strategy, t0 });
       const completedAt = new Date();
       this.db.completeScanSession(sessionId, {
         completed_at: completedAt.toISOString(),
@@ -178,7 +190,7 @@ class ScanManager {
     }
   }
 
-  async _pipeline(roots, { minSize, excludeDirs, verifyMode, t0 }) {
+  async _pipeline(roots, { minSize, excludeDirs, verifyMode, recurse, detectLinks, strategy, t0 }) {
     const batch = [];
     let scannedFileCount = 0;
     let errorCount = 0;
@@ -196,7 +208,7 @@ class ScanManager {
     for (const root of roots) {
       this._checkCancel();
       this._updateProgress({ phase: 'enumerate', message: '枚举: ' + root });
-      await this._enumerate(root, { minSize, excludeDirs, sizeGroups, onError: () => { errorCount++; }, onFile: () => {
+      await this._enumerate(root, { minSize, excludeDirs, sizeGroups, recurse, detectLinks, seenReal: new Set(), onError: () => { errorCount++; }, onFile: () => {
         scannedFileCount++;
         if (scannedFileCount % 200 === 0) {
           this._updateProgress({
@@ -340,7 +352,11 @@ class ScanManager {
   }
 
   /**
-   * 递归枚举目录。跳过：排除目录、符号链接/重解析点、不可读目录、小于 minSize 的文件。
+   * 递归枚举目录。跳过：排除目录、不可读目录、小于 minSize 的文件。
+   * 符号链接行为由 ctx.detectLinks 控制：
+   *   false → 跳过（与既有硬编码行为一致）
+   *   true  → 跟随，用 realpath 做环路/重复检测，跨多次链接只算一次
+   * 目录递归行为由 ctx.recurse 控制：false 时只处理根目录第一层文件。
    */
   async _enumerate(dir, ctx, depth = 0) {
     if (depth > 64) return; // 防御性深度限制
@@ -355,9 +371,30 @@ class ScanManager {
       this._checkCancel();
       const full = path.join(dir, ent.name);
       try {
-        if (ent.isSymbolicLink()) continue; // 符号链接策略：不跟随（规格 09-17）
+        if (ent.isSymbolicLink()) {
+          if (!ctx.detectLinks) continue; // 默认跳过
+          // 跟随符号链接：先解析 realpath，做去重与环路防护
+          let real;
+          try { real = await fsp.realpath(full); } catch { ctx.onError(); continue; }
+          if (ctx.seenReal.has(real.toLowerCase())) continue; // 已访问过（环路或多链接）
+          ctx.seenReal.add(real.toLowerCase());
+          const st = await fsp.stat(full).catch(() => null); // stat 跟随链接
+          if (!st) { ctx.onError(); continue; }
+          if (st.isDirectory()) {
+            if (ctx.recurse === false) continue;
+            if (ctx.excludeDirs.has(ent.name)) continue;
+            await this._enumerate(full, ctx, depth + 1);
+          } else if (st.isFile()) {
+            if (st.size < ctx.minSize) continue;
+            if (!ctx.sizeGroups.has(st.size)) ctx.sizeGroups.set(st.size, []);
+            ctx.sizeGroups.get(st.size).push({ path: full, name: ent.name, size: st.size, mtime: st.mtimeMs });
+            ctx.onFile();
+          }
+          continue;
+        }
         if (ent.isDirectory()) {
           if (ctx.excludeDirs.has(ent.name)) continue;
+          if (ctx.recurse === false) continue; // 不递归：跳过一切子目录
           await this._enumerate(full, ctx, depth + 1);
         } else if (ent.isFile()) {
           const st = await fsp.stat(full).catch(() => null);

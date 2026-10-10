@@ -2,9 +2,10 @@ import {
   FolderOpen,
   FolderPlus,
   Play,
+  Plus,
   RotateCcw,
   Search,
-  ShieldCheck,
+  Settings2,
   X,
   Zap
 } from 'lucide-react';
@@ -15,7 +16,7 @@ import { DemoBadge, DemoBanner } from '../components/DemoBadge';
 import { PageHeader } from '../components/PageHeader';
 import { StatCard } from '../components/StatCard';
 import { useToast } from '../components/Toast';
-import type { ScanHistoryEntry, ScanProgress, ScanState, ScanStateEvent } from '../types';
+import type { AppSettings, ScanHistoryEntry, ScanProgress, ScanState, ScanStateEvent } from '../types';
 import { formatBytes, formatCount, formatDuration, formatRelative, truncatePath } from '../utils';
 
 interface HomePageProps {
@@ -52,6 +53,14 @@ export function HomePage({ onNavigateToCleanup }: HomePageProps) {
   const [loadingHistory, setLoadingHistory] = useState(true);
   const mountedRef = useRef(true);
 
+  // ---------- 扫描选项（持久化到 update-app-settings） ----------
+  const [verify, setVerify] = useState<AppSettings['verify']>('Full');
+  const [recurse, setRecurse] = useState<boolean>(true);
+  const [detectLinks, setDetectLinks] = useState<boolean>(false);
+  const [excludeDirs, setExcludeDirs] = useState<string[]>([]);
+  const [excludeInput, setExcludeInput] = useState('');
+  const settingsLoadedRef = useRef(false);
+
   useEffect(() => {
     mountedRef.current = true;
     return () => { mountedRef.current = false; };
@@ -87,6 +96,34 @@ export function HomePage({ onNavigateToCleanup }: HomePageProps) {
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // 启动时加载已保存的扫描选项
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const s = await invoke('get-app-settings');
+        if (cancelled || !s) return;
+        if (s.verify) setVerify(s.verify);
+        if (typeof s.recurse === 'boolean') setRecurse(s.recurse);
+        if (typeof s.detectLinks === 'boolean') setDetectLinks(s.detectLinks);
+        if (Array.isArray(s.excludeDirs)) setExcludeDirs(s.excludeDirs);
+      } catch (e) {
+        if (!cancelled) console.warn('加载应用设置失败', e);
+      } finally {
+        if (!cancelled) settingsLoadedRef.current = true;
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // 选项变更后持久化（仅在初始加载完成后）
+  useEffect(() => {
+    if (!settingsLoadedRef.current) return;
+    invoke('update-app-settings', { verify, recurse, detectLinks, excludeDirs }).catch(e => {
+      console.warn('保存扫描选项失败', e);
+    });
+  }, [verify, recurse, detectLinks, excludeDirs]);
 
   // 订阅扫描事件
   useEffect(() => {
@@ -148,14 +185,35 @@ export function HomePage({ onNavigateToCleanup }: HomePageProps) {
     setError(null);
     setState('running');
     try {
-      await invoke('start-scan', { roots: directories });
+      // 主进程当前实现可能只识别 verify/excludeDirs/minSize；
+      // recurse/detectLinks 字段未来接入，先一并传过去（主进程忽略即可）。
+      await invoke('start-scan', {
+        roots: directories,
+        options: {
+          verify,
+          excludeDirs,
+          recurse,
+          detectLinks
+        }
+      });
     } catch (e) {
       setState('failed');
       const msg = e instanceof Error ? e.message : String(e);
       setError(msg);
       toast.error(msg);
     }
-  }, [directories, toast]);
+  }, [directories, verify, excludeDirs, recurse, detectLinks, toast]);
+
+  const handleAddExcludeDir = useCallback(() => {
+    const v = excludeInput.trim();
+    if (!v) return;
+    setExcludeDirs(prev => (prev.includes(v) ? prev : [...prev, v]));
+    setExcludeInput('');
+  }, [excludeInput]);
+
+  const handleRemoveExcludeDir = useCallback((dir: string) => {
+    setExcludeDirs(prev => prev.filter(d => d !== dir));
+  }, []);
 
   const handleCancelScan = useCallback(async () => {
     try {
@@ -288,38 +346,108 @@ export function HomePage({ onNavigateToCleanup }: HomePageProps) {
         )}
       </Card>
 
-      {/* ---------- 5.3 扫描原理说明卡片 ---------- */}
-      <Card title="智能识别重复文件" icon={<Zap size={15} strokeWidth={1.8} />}>
-        <ul style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 24px' }}>
-          <li className="row" style={{ alignItems: 'flex-start' }}>
-            <Search size={15} strokeWidth={1.8} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 2 }} />
-            <div>
-              <div className="strong" style={{ fontSize: 'var(--fs-body)' }}>内容级 SHA-256 哈希</div>
-              <div className="aux">基于文件内容而非文件名识别重复</div>
+      {/* ---------- 5.3 扫描选项卡片 ---------- */}
+      <Card title="扫描选项" icon={<Settings2 size={15} strokeWidth={1.8} />}>
+        <div className="scan-options">
+          {/* 校验级别 */}
+          <div className="scan-option-row">
+            <div className="scan-option-label">
+              <span className="strong">校验级别</span>
+              <span className="aux">识别重复文件时使用的哈希策略</span>
             </div>
-          </li>
-          <li className="row" style={{ alignItems: 'flex-start' }}>
-            <ShieldCheck size={15} strokeWidth={1.8} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 2 }} />
-            <div>
-              <div className="strong" style={{ fontSize: 'var(--fs-body)' }}>安全隔离区</div>
-              <div className="aux">文件先移入隔离区，可随时恢复</div>
+            <select
+              className="select"
+              style={{ width: 200, flexShrink: 0 }}
+              value={verify}
+              disabled={isRunning}
+              onChange={e => setVerify(e.target.value as AppSettings['verify'])}
+              aria-label="校验级别"
+            >
+              <option value="Full">全量 SHA-256</option>
+              <option value="Head">头部哈希</option>
+              <option value="Name">仅文件名 + 大小</option>
+            </select>
+          </div>
+
+          {/* 递归子目录 */}
+          <div className="scan-option-row">
+            <div className="scan-option-label">
+              <span className="strong">递归子目录</span>
+              <span className="aux">包含所选目录的全部子目录</span>
             </div>
-          </li>
-          <li className="row" style={{ alignItems: 'flex-start' }}>
-            <FolderOpen size={15} strokeWidth={1.8} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 2 }} />
-            <div>
-              <div className="strong" style={{ fontSize: 'var(--fs-body)' }}>常见类型全覆盖</div>
-              <div className="aux">图片、视频、文档、压缩包等</div>
+            <input
+              type="checkbox"
+              className="switch"
+              checked={recurse}
+              disabled={isRunning}
+              onChange={e => setRecurse(e.target.checked)}
+              aria-label="递归子目录"
+            />
+          </div>
+
+          {/* 检测硬链接 */}
+          <div className="scan-option-row">
+            <div className="scan-option-label">
+              <span className="strong">检测硬链接</span>
+              <span className="aux">同一文件的硬链接视为重复</span>
             </div>
-          </li>
-          <li className="row" style={{ alignItems: 'flex-start' }}>
-            <Play size={15} strokeWidth={1.8} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 2 }} />
-            <div>
-              <div className="strong" style={{ fontSize: 'var(--fs-body)' }}>清理前可预览</div>
-              <div className="aux">逐组确认保留与清理目标</div>
+            <input
+              type="checkbox"
+              className="switch"
+              checked={detectLinks}
+              disabled={isRunning}
+              onChange={e => setDetectLinks(e.target.checked)}
+              aria-label="检测硬链接"
+            />
+          </div>
+
+          {/* 排除目录 */}
+          <div>
+            <div className="scan-option-label">
+              <span className="strong">排除目录</span>
+              <span className="aux">扫描时跳过这些目录（名称或绝对路径）</span>
             </div>
-          </li>
-        </ul>
+            <div className="row" style={{ marginTop: 6 }}>
+              <input
+                type="text"
+                className="input"
+                placeholder="如 node_modules 或 D:\\临时"
+                value={excludeInput}
+                disabled={isRunning}
+                onChange={e => setExcludeInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddExcludeDir(); } }}
+                aria-label="新增排除目录"
+              />
+              <button
+                type="button"
+                className="btn"
+                onClick={handleAddExcludeDir}
+                disabled={isRunning || excludeInput.trim().length === 0}
+              >
+                <Plus size={13} />
+                添加
+              </button>
+            </div>
+            {excludeDirs.length > 0 && (
+              <ul className="exclude-list">
+                {excludeDirs.map(d => (
+                  <li key={d}>
+                    <span className="mono ellipsis" title={d} style={{ flex: 1, minWidth: 0 }}>{d}</span>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-icon btn-sm"
+                      aria-label={`移除 ${d}`}
+                      onClick={() => handleRemoveExcludeDir(d)}
+                      disabled={isRunning}
+                    >
+                      <X size={13} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
       </Card>
 
       {/* ---------- 5.4 扫描进度卡片 ---------- */}
@@ -340,15 +468,7 @@ export function HomePage({ onNavigateToCleanup }: HomePageProps) {
                 />
               )}
             </svg>
-            <div
-              style={{
-                position: 'absolute',
-                textAlign: 'center',
-                fontFamily: 'var(--font-en)',
-                fontWeight: 600,
-                fontSize: 18
-              }}
-            >
+            <div className="ring-center-label">
               {percent !== undefined ? `${percent.toFixed(0)}%` : '—'}
             </div>
           </div>

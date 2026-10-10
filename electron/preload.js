@@ -14,6 +14,7 @@ const INVOKE_CHANNELS = new Set([
   'get-scan-history',
   'get-duplicate-groups',
   'set-retained-file',
+  'apply-retention-strategy',
   'quarantine-files',
   'permanently-delete-files',
   'restore-quarantined-files',

@@ -9,7 +9,7 @@ interface StatCardProps {
 
 export function StatCard({ label, value, hint, icon }: StatCardProps) {
   return (
-    <div className="card" style={{ padding: '12px 14px' }}>
+    <div className="card stat-card" style={{ padding: '12px 14px' }}>
       <div className="row" style={{ gap: 6, marginBottom: 4 }}>
         {icon ? <span style={{ color: 'var(--text2)', display: 'inline-flex' }}>{icon}</span> : null}
         <div className="aux">{label}</div>
@@ -20,7 +20,13 @@ export function StatCard({ label, value, hint, icon }: StatCardProps) {
       >
         {value}
       </div>
-      {hint ? <div className="aux-sm" style={{ marginTop: 4 }}>{hint}</div> : null}
+      {/* hint 占位始终渲染一行，避免有无 hint 时高度不齐 */}
+      <div
+        className="aux-sm"
+        style={{ marginTop: 4, minHeight: 15, visibility: hint ? 'visible' : 'hidden' }}
+      >
+        {hint ?? ' '}
+      </div>
     </div>
   );
 }

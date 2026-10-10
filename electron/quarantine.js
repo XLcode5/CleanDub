@@ -250,7 +250,8 @@ class Quarantine {
       operation_status: failures.length ? 'partial' : 'ok',
       error_message: failures.length ? JSON.stringify(failures.slice(0, 20)) : null
     });
-    return { restored: moved, bytes, failures };
+    // 返回成功条目的 stored 路径，让调用方按需精准更新 SQLite 状态
+    return { restored: moved, bytes, failures, succeededStored: restoredStored };
   }
 
   /** 永久删除隔离区条目（调用方须已二次确认）。 */
@@ -291,7 +292,8 @@ class Quarantine {
       operation_status: failures.length ? 'partial' : 'ok',
       error_message: failures.length ? JSON.stringify(failures.slice(0, 20)) : null
     });
-    return { deleted, bytes, failures };
+    // 返回成功条目的 stored 路径，让调用方按需精准更新 SQLite 状态
+    return { deleted, bytes, failures, succeededStored: removedStored };
   }
 
   /** 部分处理后回写 manifest（剔除已移除条目）；会话空了就删除整个目录。 */

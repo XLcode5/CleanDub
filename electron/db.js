@@ -102,6 +102,63 @@ CREATE TABLE IF NOT EXISTS operation_logs (
 CREATE INDEX IF NOT EXISTS idx_op_logs_created ON operation_logs(created_at);
 `;
 
+// ---------- 保留策略辅助（对齐 dedup_core.ps1 Get-Keeper2 / Get-SuffixMarkerInfo） ----------
+// 提取 basename 中的 "(N)" 后缀标记个数与最大数字；与 PS 版正则保持一致
+function suffixMarkerInfo(fileName) {
+  const base = String(fileName || '').replace(/\.[^.]+$/, ''); // 去扩展名
+  const matches = base.match(/\(\d+\)/g);
+  const count = matches ? matches.length : 0;
+  let maxN = 0;
+  const tail = base.match(/\((\d+)\)\s*$/);
+  if (tail) maxN = parseInt(tail[1], 10) || 0;
+  const hasTrailing = /\s*\(\d+\)\s*$/.test(base);
+  return { count, maxN, hasTrailing };
+}
+
+function mtimeOf(f) {
+  const t = Date.parse(f.modified_at || '');
+  return Number.isFinite(t) ? t : 0;
+}
+
+/**
+ * 从一组重复文件中按策略选出 keeper。
+ * @param {Array<{id:number, canonical_path:string, file_name:string, modified_at:string}>} files
+ * @param {'Cleanest'|'Newest'|'Original'|'Highest'} strategy
+ */
+function pickKeeper(files, strategy) {
+  if (!files || files.length === 0) return null;
+  if (files.length === 1) return files[0];
+  const enriched = files.map(f => ({ ...f, _mi: suffixMarkerInfo(f.file_name) }));
+  if (strategy === 'Highest') {
+    enriched.sort((a, b) =>
+      (b._mi.maxN - a._mi.maxN) ||
+      (mtimeOf(b) - mtimeOf(a))
+    );
+    return enriched[0];
+  }
+  if (strategy === 'Original') {
+    const plain = enriched.filter(f => !f._mi.hasTrailing);
+    if (plain.length > 0) {
+      plain.sort((a, b) => mtimeOf(b) - mtimeOf(a));
+      return plain[0];
+    }
+    // 都带后缀 → 退回 Newest
+    enriched.sort((a, b) => mtimeOf(b) - mtimeOf(a));
+    return enriched[0];
+  }
+  if (strategy === 'Newest') {
+    enriched.sort((a, b) => mtimeOf(b) - mtimeOf(a));
+    return enriched[0];
+  }
+  // Cleanest (默认): (N) 个数最少 → mtime 最新 → 路径最短
+  enriched.sort((a, b) =>
+    (a._mi.count - b._mi.count) ||
+    (mtimeOf(b) - mtimeOf(a)) ||
+    (String(a.canonical_path).length - String(b.canonical_path).length)
+  );
+  return enriched[0];
+}
+
 class Db {
   constructor(filePath) {
     this.filePath = filePath;
@@ -216,6 +273,47 @@ class Db {
     return { ok: true };
   }
 
+  /**
+   * 批量保留策略：对某次扫描的所有重复组一次性选定 retained_file_id。
+   * 策略语义对齐 dedup_core.ps1 Get-Keeper2：
+   *   Cleanest —— (N) 标记最少优先；并列比修改时间新；再并列比路径短
+   *   Newest   —— 修改时间最新
+   *   Original —— 无 (N) 后缀原件优先（并列取最新）；都带后缀时退回 Newest
+   *   Highest  —— (N) 数字最大优先；并列比修改时间新
+   * @param {number|null} sessionId - 缺省取最近一次 completed/cancelled 会话
+   * @param {string} strategy
+   * @returns {{sessionId: number, strategy: string, groupsUpdated: number}}
+   */
+  applyRetentionStrategy(sessionId, strategy) {
+    const sid = sessionId || (() => {
+      const row = this.db.prepare(
+        "SELECT id FROM scan_sessions WHERE status IN ('completed','cancelled') ORDER BY id DESC LIMIT 1"
+      ).get();
+      return row ? row.id : null;
+    })();
+    if (!sid) throw new Error('没有可用的扫描会话');
+    const strat = ['Cleanest', 'Newest', 'Original', 'Highest'].includes(strategy) ? strategy : 'Cleanest';
+    const groups = this.db.prepare(
+      'SELECT id FROM duplicate_groups WHERE scan_session_id = ?'
+    ).all(sid);
+    const filesStmt = this.db.prepare(
+      'SELECT id, canonical_path, file_name, modified_at FROM scanned_files WHERE duplicate_group_id = ?'
+    );
+    const updateStmt = this.db.prepare(
+      'UPDATE duplicate_groups SET retained_file_id = ? WHERE id = ?'
+    );
+    let updated = 0;
+    this.transaction(() => {
+      for (const g of groups) {
+        const files = filesStmt.all(g.id);
+        if (!files || files.length === 0) continue;
+        const keeper = pickKeeper(files, strat);
+        if (keeper) { updateStmt.run(keeper.id, g.id); updated++; }
+      }
+    });
+    return { sessionId: sid, strategy: strat, groupsUpdated: updated };
+  }
+
   deleteScanHistory(sessionId) {
     // 规格 08：删除历史保留隔离区恢复所需数据 —— quarantine_items 不随扫描删除
     this.transaction(() => {
@@ -251,7 +349,7 @@ class Db {
   getQuarantineItemsByIds(ids) {
     const out = [];
     const stmt = this.db.prepare(
-      'SELECT id, original_path, quarantine_path, session_dir, scan_root FROM quarantine_items WHERE id = ?'
+      'SELECT id, original_path, quarantine_path, session_dir, scan_root, status FROM quarantine_items WHERE id = ?'
     );
     for (const id of ids) {
       const row = stmt.get(id);
@@ -325,4 +423,4 @@ class Db {
   }
 }
 
-module.exports = { Db, driver };
+module.exports = { Db, driver, pickKeeper, suffixMarkerInfo };

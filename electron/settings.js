@@ -11,6 +11,7 @@ const DEFAULTS = {
   strategy: 'Cleanest',
   verify: 'Full',
   detectLinks: true,
+  recurse: true,
   excludeDirs: []
 };
 
@@ -29,6 +30,7 @@ class Settings {
       if (typeof raw.strategy === 'string' && raw.strategy) s.strategy = raw.strategy;
       if (VALID_VERIFY.has(raw.verify)) s.verify = raw.verify;
       if (typeof raw.detectLinks === 'boolean') s.detectLinks = raw.detectLinks;
+      if (typeof raw.recurse === 'boolean') s.recurse = raw.recurse;
       if (Array.isArray(raw.excludeDirs)) {
         s.excludeDirs = raw.excludeDirs.filter(x => typeof x === 'string' && x.trim());
       }
