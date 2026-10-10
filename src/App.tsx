@@ -15,7 +15,7 @@ export default function App() {
 
   return (
     <ToastProvider>
-      <AppShell current={page} onNavigate={setPage} version="v1.0.0">
+      <AppShell current={page} onNavigate={setPage} version={`v${__APP_VERSION__}`}>
         {page === 'home' && <HomePage onNavigateToCleanup={gotoCleanup} />}
         {page === 'cleanup' && <CleanupPage onRescanRequest={gotoHome} />}
         {page === 'profile' && <ProfilePage />}

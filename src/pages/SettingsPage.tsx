@@ -291,7 +291,7 @@ export function SettingsPage() {
             <div className="scan-option-label">
               <span className="strong">版本</span>
               <span className="aux">
-                当前 v1.0.0
+                当前 v{__APP_VERSION__}
                 {update ? ` · 最新 v${update.latestVersion}（检查于 ${formatDateTime(update.checkedAt)}）` : ''}
               </span>
             </div>
