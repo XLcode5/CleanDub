@@ -145,7 +145,7 @@ async function demoInvoke<K extends BridgeChannel>(
 
     case 'permanently-delete-files': {
       const p = payload as BridgeInvokeMap['permanently-delete-files']['payload'];
-      const n = p?.quarantineIds?.length ?? 0;
+      const n = p?.fileIds?.length ?? p?.quarantineIds?.length ?? 0;
       return { ok: n, failed: 0 } as BridgeInvokeMap[K]['result'];
     }
 

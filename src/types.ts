@@ -170,7 +170,10 @@ export interface BridgeInvokeMap {
     result: { sessionId: number; strategy: string; groupsUpdated: number; skipped: number };
   };
   'quarantine-files': { payload: { fileIds: number[] }; result: { ok: number; failed: number; skipped: number } };
-  'permanently-delete-files': { payload: { quarantineIds: number[] }; result: { ok: number; failed: number } };
+  'permanently-delete-files': {
+    payload: { quarantineIds?: number[]; fileIds?: number[] };
+    result: { ok: number; failed: number; skipped?: number; missing?: number };
+  };
   'restore-quarantined-files': { payload: { quarantineIds: number[] }; result: { ok: number; failed: number; conflicts?: string[] } };
   'get-quarantine-items': { payload?: { status?: QuarantineItem['status'] }; result: QuarantineItem[] };
   'delete-scan-history': { payload: { sessionId: number }; result: { ok: boolean } };

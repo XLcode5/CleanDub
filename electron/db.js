@@ -412,6 +412,23 @@ class Db {
     return row ? row.root : null;
   }
 
+  /**
+   * 返回这批文件中属于「保留文件」的 id 集合（v1.0.2 直删通道的安全过滤）。
+   */
+  getProtectedFileIds(fileIds) {
+    const protectedIds = new Set();
+    const stmt = this.db.prepare(`
+      SELECT g.retained_file_id AS rid
+      FROM scanned_files f
+      JOIN duplicate_groups g ON g.id = f.duplicate_group_id
+      WHERE f.id = ? AND g.retained_file_id IS NOT NULL`);
+    for (const id of fileIds) {
+      const row = stmt.get(id);
+      if (row) protectedIds.add(row.rid);
+    }
+    return protectedIds;
+  }
+
   getQuarantineItemsByIds(ids) {
     const out = [];
     const stmt = this.db.prepare(

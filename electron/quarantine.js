@@ -301,6 +301,55 @@ class Quarantine {
     return { deleted, bytes, failures, succeededStored: removedStored };
   }
 
+  /**
+   * 直接永久删除扫描结果中的重复文件（清理页「永久删除」直删通道，v1.0.2）。
+   * 与 deletePermanent（删隔离区文件）不同：这里删的是磁盘原位置的扫描文件。
+   * 安全约束（规格 09）：每个文件执行前 stat 复查存在性；必须在扫描根内；
+   * 不允许删隔离区/日志区文件；文件状态变化时计入 failures 不中断。
+   */
+  async deleteScanFiles(scanRoot, files) {
+    const root = normalizeRoot(scanRoot);
+    if (!Array.isArray(files) || files.length === 0) throw new Error('没有需要删除的文件');
+    const failures = [];
+    const succeeded = [];
+    let deleted = 0, bytes = 0;
+
+    for (const f of files) {
+      let full;
+      try { full = path.resolve(String(f.path)); }
+      catch { failures.push({ path: String(f.path), reason: '路径无效' }); continue; }
+      if (!isUnder(full, root)) { failures.push({ path: full, reason: '不在扫描根目录内，已拒绝' }); continue; }
+      if (isUnder(full, this.quarantineRoot(root)) || isUnder(full, this.logsRoot(root))) {
+        failures.push({ path: full, reason: '文件位于隔离区/日志区，已拒绝' }); continue;
+      }
+      let st;
+      try { st = await fsp.stat(full); }
+      catch { failures.push({ path: full, reason: '文件不存在（可能已被处理）' }); continue; }
+      try {
+        await fsp.unlink(full);
+        deleted++;
+        bytes += st.size;
+        succeeded.push(full);
+      } catch (err) {
+        failures.push({ path: full, reason: String(err.message || err) });
+      }
+    }
+
+    // 操作日志双写（磁盘 ops.jsonl + SQLite），与隔离/恢复通道一致
+    await this.appendOpLog(root, {
+      op: 'scan-delete', ts: isoNow(), root,
+      deleted, bytes, failedCount: failures.length,
+      detail: `直接永久删除 ${deleted} 个 / ${bytes} B，失败 ${failures.length}`
+    });
+    this.db.insertOperationLog({
+      operation_type: 'delete',
+      target_path: root,
+      operation_status: failures.length ? 'partial' : 'ok',
+      error_message: failures.length ? JSON.stringify(failures.slice(0, 20)) : null
+    });
+    return { deleted, bytes, failures, succeededPaths: succeeded };
+  }
+
   /** 部分处理后回写 manifest（剔除已移除条目）；会话空了就删除整个目录。 */
   async _rewriteManifest(sessFull, removedStoredPaths) {
     const mf = path.join(sessFull, 'manifest.json');

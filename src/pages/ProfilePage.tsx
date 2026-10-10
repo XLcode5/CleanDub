@@ -148,6 +148,19 @@ export function ProfilePage() {
     });
   }, []);
 
+  // v1.0.2：隔离区全选/全不选（三态联动批量按钮）
+  const activeQuarantineIds = useMemo(
+    () => new Set(activeQuarantine.map(q => q.id)),
+    [activeQuarantine]
+  );
+  const allQuarantineSelected = activeQuarantine.length > 0
+    && activeQuarantine.every(q => selectedQuarantineIds.has(q.id));
+  const toggleAllQuarantine = useCallback(() => {
+    setSelectedQuarantineIds(
+      allQuarantineSelected ? new Set() : new Set(activeQuarantineIds)
+    );
+  }, [allQuarantineSelected, activeQuarantineIds]);
+
   const statusLabel = (s: ScanHistoryEntry['status']) => {
     switch (s) {
       case 'completed': return <span className="tag tag-success">已完成</span>;
@@ -316,7 +329,18 @@ export function ProfilePage() {
             ) : (
               <>
                 <div className="row" style={{ marginBottom: 8 }}>
-                  <span className="aux">已选 {selectedQuarantineIds.size} 项</span>
+                  <span className="aux">
+                    已选 {selectedQuarantineIds.size}/{activeQuarantine.length} 项
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      style={{ marginLeft: 8 }}
+                      onClick={toggleAllQuarantine}
+                      disabled={activeQuarantine.length === 0 || busy}
+                    >
+                      {allQuarantineSelected ? '取消全选' : '全选'}
+                    </button>
+                  </span>
                   <div style={{ marginLeft: 'auto' }} className="row">
                     <button
                       type="button"
@@ -342,7 +366,18 @@ export function ProfilePage() {
                   <table className="table">
                     <thead>
                       <tr>
-                        <th style={{ width: 32 }}></th>
+                        <th style={{ width: 32 }}>
+                          <input
+                            type="checkbox"
+                            checked={allQuarantineSelected}
+                            ref={el => {
+                              if (el) el.indeterminate = selectedQuarantineIds.size > 0 && !allQuarantineSelected;
+                            }}
+                            onChange={toggleAllQuarantine}
+                            aria-label="全选隔离区文件"
+                            disabled={busy || activeQuarantine.length === 0}
+                          />
+                        </th>
                         <th>文件名</th>
                         <th>原始路径</th>
                         <th>隔离时间</th>

@@ -18,6 +18,18 @@ files:
   - "!electron/README.md"
   - dist-renderer/**
   - package.json
+  # 瘦身 v1.0.2：剔除 lucide-react 运行时不需要的产物（cjs/esm/类型）—— 渲染层构建产物已在 dist-renderer
+  # 以及 better-sqlite3 的构建期依赖（node-abi/tar-fs/rc/readable-stream/prebuild-install 等）
+  # 和原生模块的 deps/ 源码目录
+  - "!node_modules/lucide-react/dist"
+  - "!node_modules/lucide-react/src"
+  - "!node_modules/**/*.md"
+  - "!node_modules/**/*.ts"
+  - "!node_modules/**/*.md"
+  - "!node_modules/**/deps/**"
+  - "!node_modules/**/src/**"
+  - "!node_modules/**/Examples/**"
+  - "!node_modules/**/.bin/**"
 win:
   target:
     - nsis

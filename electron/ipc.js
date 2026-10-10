@@ -149,6 +149,45 @@ function registerIpc({ ipcMain, getWindow, db, settings, scanManager, quarantine
     })();
   });
   handle('permanently-delete-files', (p) => {
+    // v1.0.2 双通道：quarantineIds = 删隔离区文件（原有）；fileIds = 清理页直删扫描文件（新增）
+    const fileIds = Array.isArray(p.fileIds) ? p.fileIds.map(Number).filter(Number.isInteger) : [];
+    if (fileIds.length > 0) {
+      // 直删通道：fileIds → 路径 → 引擎 deleteScanFiles；保留文件不可删
+      const files = db.getFilesByIds(fileIds);
+      if (files.length === 0) {
+        const err = new Error('文件不存在或已被处理（可能已被隔离/删除）');
+        err.code = 'FILES_NOT_FOUND';
+        throw err;
+      }
+      // 保留文件过滤：查这些文件所在组的 retained_file_id，被保留的拒绝删除
+      const protectedIds = db.getProtectedFileIds(fileIds);
+      const deletable = files.filter(f => !protectedIds.has(f.id));
+      if (deletable.length === 0) {
+        const err = new Error('所选文件均为保留文件，已拒绝删除');
+        err.code = 'PROTECTED_FILES';
+        throw err;
+      }
+      // 多扫描根时按 root 分组执行（跨盘安全）
+      const byRoot = new Map();
+      for (const f of deletable) {
+        const root = db.scanRootOfFile(f.id);
+        if (!root) { continue; }
+        if (!byRoot.has(root)) byRoot.set(root, []);
+        byRoot.get(root).push({ path: f.canonical_path, id: f.id });
+      }
+      if (byRoot.size === 0) throw new Error('无法确定扫描根目录（扫描历史可能已清空）');
+      return (async () => {
+        let deleted = 0, failed = 0;
+        for (const [root, list] of byRoot) {
+          try {
+            const r = await quarantine.deleteScanFiles(root, list);
+            deleted += r.deleted; failed += r.failures.length;
+          } catch { failed += list.length; }
+        }
+        return { ok: deleted, failed, skipped: protectedIds.size, missing: 0 };
+      })();
+    }
+    // ---- 原有：删除隔离区文件 ----
     const ids = Array.isArray(p.quarantineIds) ? p.quarantineIds.map(Number).filter(Number.isInteger) : [];
     if (ids.length === 0) throw new Error('没有需要删除的文件');
     const items = db.getQuarantineItemsByIds(ids);

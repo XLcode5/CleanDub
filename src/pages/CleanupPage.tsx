@@ -285,8 +285,9 @@ export function CleanupPage({ onRescanRequest }: CleanupPageProps) {
   const confirmPermanentDelete = useCallback(async (ids: number[]) => {
     setBusy(true);
     try {
-      const r = await invoke('permanently-delete-files', { quarantineIds: ids });
-      toast.success(`已永久删除 ${r.ok} 个文件`);
+      // v1.0.2：清理页直删通道 —— 传 fileIds（scanned_files.id），引擎直接删磁盘文件
+      const r = await invoke('permanently-delete-files', { fileIds: ids });
+      toast.success(`已永久删除 ${r.ok} 个文件${r.failed > 0 ? `，${r.failed} 个失败` : ''}${r.skipped ? `（${r.skipped} 个保留文件已跳过）` : ''}`);
       setSelectedIds(new Set());
       await load();
     } catch (e) {
@@ -664,7 +665,8 @@ export function CleanupPage({ onRescanRequest }: CleanupPageProps) {
         onConfirm={() => pendingConfirm && pendingConfirm.kind === 'delete' && confirmPermanentDelete(pendingConfirm.ids)}
       >
         <p style={{ marginBottom: 10, color: 'var(--danger)', fontWeight: 500 }}>
-          此操作无法通过应用恢复。确定要永久删除 <strong>{pendingConfirm?.kind === 'delete' ? pendingConfirm.ids.length : 0}</strong> 个文件吗？
+          将从磁盘<strong>直接永久删除</strong>（不经隔离区）{pendingConfirm?.kind === 'delete' ? pendingConfirm.ids.length : 0} 个文件。
+          此操作无法通过应用恢复，保留文件自动受保护。
         </p>
         <p className="aux" style={{ marginBottom: 10 }}>
           建议优先使用隔离操作，永久删除仅在确认数据已无用时使用。
