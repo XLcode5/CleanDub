@@ -1,0 +1,19 @@
+appId: com.cleandub.app
+productName: CleanDub
+directories:
+  output: dist
+  buildResources: build
+files:
+  - electron/**
+  - dist-renderer/**
+  - package.json
+asar: true
+win:
+  target:
+    - nsis
+  artifactName: ${productName}-Setup-${version}.${ext}
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+  shortcutName: CleanDub

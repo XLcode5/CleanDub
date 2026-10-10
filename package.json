@@ -1,0 +1,31 @@
+{
+  "name": "cleandub",
+  "version": "1.0.0",
+  "description": "CleanDub - Duplicate file cleaner desktop app (Electron + React + TypeScript)",
+  "private": true,
+  "main": "electron/main.js",
+  "author": "CleanDub",
+  "license": "MIT",
+  "scripts": {
+    "dev": "concurrently -k \"npm:dev:renderer\" \"npm:dev:electron\"",
+    "dev:renderer": "vite",
+    "dev:electron": "wait-on tcp:5173 && set NODE_ENV=development&& electron .",
+    "start": "electron .",
+    "build": "npm run build:renderer && npm run build:electron",
+    "build:renderer": "vite build",
+    "build:electron": "electron-builder --win",
+    "package": "electron-builder --win --dir"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "electron": "^33.4.0",
+    "electron-builder": "^25.1.8",
+    "wait-on": "^8.0.3"
+  },
+  "allowScripts": {
+    "electron@33.4.11": true
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0"
+  }
+}
