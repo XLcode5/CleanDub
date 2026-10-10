@@ -25,6 +25,9 @@ let mainWindow = null;
 let services = null;
 
 function isDev() {
+  // NODE_ENV=production 时强制生产模式（加载 dist-renderer）；
+  // 否则按「未打包」或显式 development 判定开发模式。
+  if (process.env.NODE_ENV === 'production') return false;
   return process.env.NODE_ENV === 'development' || !app.isPackaged;
 }
 
