@@ -182,6 +182,12 @@ async function demoInvoke<K extends BridgeChannel>(
     case 'open-external':
       return { ok: true } as BridgeInvokeMap[K]['result'];
 
+    case 'reset-app-data':
+      return {
+        ok: true,
+        remaining: { scan_sessions: 0, scanned_files: 0, duplicate_groups: 0, quarantine_items: 0, operation_logs: 0 }
+      } as BridgeInvokeMap[K]['result'];
+
     default:
       throw new Error('演示模式不支持的通道: ' + String(channel));
   }

@@ -202,6 +202,15 @@ function registerIpc({ ipcMain, getWindow, db, settings, scanManager, quarantine
   handle('update-app-settings', (p) => settings.update(p));
   handle('get-operation-logs', (p) => db.getOperationLogs(p.limit));
 
+  // ---------- 数据管理（个人中心一键重置） ----------
+  handle('reset-app-data', (p) => {
+    const scope = String(p.scope || '');
+    if (!['history', 'quarantine', 'all'].includes(scope)) {
+      throw new Error('参数无效：scope 必须是 history | quarantine | all');
+    }
+    return db.resetAppData(scope);
+  });
+
   // ---------- 检查更新（对齐 dedup_server.ps1 Check-UpdateAsync 语义） ----------
   const UPDATE_URL = 'https://api.github.com/repos/XLcode5/CleanDub/releases/latest';
   // 本地版本以 package.json 为准（打包后与安装包版本一致）

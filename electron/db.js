@@ -325,6 +325,43 @@ class Db {
     return { ok: true };
   }
 
+  /**
+   * 数据管理一键重置（个人中心「数据管理」卡片）。
+   * scope:
+   *   - history   清空扫描历史（sessions/roots/scanned_files/duplicate_groups）
+   *   - quarantine 清空隔离区【记录】（quarantine_items + operation_logs；磁盘实体不删——
+   *               实体目录在扫描根/自定义位置，应用不掌握全部根的写权限，需用户自行处理）
+   *   - all       两者全清
+   * 返回各表剩余行数，供 UI 核对。
+   */
+  resetAppData(scope) {
+    const s = scope === 'history' || scope === 'quarantine' || scope === 'all' ? scope : null;
+    if (!s) throw new Error('参数无效');
+    this.transaction(() => {
+      if (s === 'history' || s === 'all') {
+        this.db.prepare('DELETE FROM scanned_files').run();
+        this.db.prepare('DELETE FROM duplicate_groups').run();
+        this.db.prepare('DELETE FROM scan_roots').run();
+        this.db.prepare('DELETE FROM scan_sessions').run();
+      }
+      if (s === 'quarantine' || s === 'all') {
+        this.db.prepare('DELETE FROM quarantine_items').run();
+      }
+      this.db.prepare('DELETE FROM operation_logs').run();
+    });
+    const count = (t) => Number(this.db.prepare(`SELECT COUNT(*) FROM ${t}`).get()['COUNT(*)']);
+    return {
+      ok: true,
+      remaining: {
+        scan_sessions: count('scan_sessions'),
+        scanned_files: count('scanned_files'),
+        duplicate_groups: count('duplicate_groups'),
+        quarantine_items: count('quarantine_items'),
+        operation_logs: count('operation_logs')
+      }
+    };
+  }
+
   // ---------- IPC 适配辅助（渲染层提交 id，引擎层需要 path/session） ----------
   getFilesByIds(ids) {
     const out = [];

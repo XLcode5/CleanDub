@@ -133,6 +133,17 @@ export interface UpdateCheckResult {
   checkedAt: string;
 }
 
+export interface ResetResult {
+  ok: boolean;
+  remaining: {
+    scan_sessions: number;
+    scanned_files: number;
+    duplicate_groups: number;
+    quarantine_items: number;
+    operation_logs: number;
+  };
+}
+
 export interface BridgeInvokeMap {
   'choose-directories': { payload?: never; result: { paths: string[] } };
   'start-scan': {
@@ -162,6 +173,7 @@ export interface BridgeInvokeMap {
   'get-app-settings': { payload?: never; result: AppSettings };
   'update-app-settings': { payload: Partial<AppSettings>; result: AppSettings };
   'get-operation-logs': { payload?: { limit?: number }; result: OperationLog[] };
+  'reset-app-data': { payload: { scope: 'history' | 'quarantine' | 'all' }; result: ResetResult };
   'check-updates': { payload?: never; result: UpdateCheckResult };
   'open-external': { payload: { url: string }; result: { ok: boolean } };
 }

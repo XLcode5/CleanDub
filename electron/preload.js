@@ -25,6 +25,7 @@ const INVOKE_CHANNELS = new Set([
   'check-updates',
   'open-external',
   'get-operation-logs',
+  'reset-app-data',
   'window:is-maximized'
 ]);
 

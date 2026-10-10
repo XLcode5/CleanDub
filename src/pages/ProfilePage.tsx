@@ -1,6 +1,7 @@
 import {
   Archive,
   CalendarClock,
+  DatabaseZap,
   Eye,
   FileStack,
   History,
@@ -31,6 +32,7 @@ export function ProfilePage() {
     | { kind: 'delete-history'; sessionId: number }
     | { kind: 'restore'; ids: number[] }
     | { kind: 'delete-quarantine'; ids: number[] }
+    | { kind: 'reset-data'; scope: 'history' | 'quarantine' | 'all' }
     | null
   >(null);
   const [busy, setBusy] = useState(false);
@@ -84,6 +86,24 @@ export function ProfilePage() {
       await load();
     } catch (e) {
       toast.error('删除失败: ' + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setBusy(false);
+      setPendingConfirm(null);
+    }
+  }, [load, toast]);
+
+  // ---------- 数据管理一键重置 ----------
+  const handleResetData = useCallback(async (scope: 'history' | 'quarantine' | 'all') => {
+    setBusy(true);
+    try {
+      await invoke('reset-app-data', { scope });
+      const label = scope === 'history' ? '扫描历史已清空'
+        : scope === 'quarantine' ? '隔离区记录已清空（磁盘上的隔离文件不受影响）'
+        : '全部数据已重置';
+      toast.success(label);
+      await load();
+    } catch (e) {
+      toast.error('重置失败: ' + (e instanceof Error ? e.message : String(e)));
     } finally {
       setBusy(false);
       setPendingConfirm(null);
@@ -363,6 +383,42 @@ export function ProfilePage() {
         )}
       </Card>
 
+      {/* ---------- 7.6 数据管理 ---------- */}
+      <Card title="数据管理" icon={<DatabaseZap size={15} strokeWidth={1.8} />}>
+        <p className="aux" style={{ marginBottom: 12 }}>
+          清空应用内的记录数据。设置（扫描选项/隔离区位置）不受影响；磁盘上的原始文件和隔离区文件不会被删除。
+        </p>
+        <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="btn btn-sm"
+            disabled={busy || totalScans === 0}
+            onClick={() => setPendingConfirm({ kind: 'reset-data', scope: 'history' })}
+          >
+            <History size={13} />
+            清空扫描历史{totalScans > 0 ? `（${formatCount(totalScans)} 次）` : ''}
+          </button>
+          <button
+            type="button"
+            className="btn btn-sm"
+            disabled={busy || quarantine.length === 0}
+            onClick={() => setPendingConfirm({ kind: 'reset-data', scope: 'quarantine' })}
+          >
+            <Archive size={13} />
+            清空隔离区记录{quarantine.length > 0 ? `（${formatCount(quarantine.length)} 条）` : ''}
+          </button>
+          <button
+            type="button"
+            className="btn btn-sm btn-danger"
+            disabled={busy || (totalScans === 0 && quarantine.length === 0)}
+            onClick={() => setPendingConfirm({ kind: 'reset-data', scope: 'all' })}
+          >
+            <DatabaseZap size={13} />
+            全部重置
+          </button>
+        </div>
+      </Card>
+
       {/* 删除历史确认 */}
       <ConfirmDialog
         open={pendingConfirm?.kind === 'delete-history'}
@@ -405,6 +461,34 @@ export function ProfilePage() {
         <p style={{ color: 'var(--danger)', fontWeight: 500 }}>
           永久删除后无法通过应用恢复。确定要删除 <strong>{pendingConfirm?.kind === 'delete-quarantine' ? pendingConfirm.ids.length : 0}</strong> 个隔离文件吗？
         </p>
+      </ConfirmDialog>
+
+      {/* 数据管理重置确认 */}
+      <ConfirmDialog
+        open={pendingConfirm?.kind === 'reset-data'}
+        tone={pendingConfirm?.kind === 'reset-data' && pendingConfirm.scope === 'all' ? 'danger' : 'warn'}
+        title={
+          pendingConfirm?.kind === 'reset-data' && pendingConfirm.scope === 'history' ? '清空扫描历史'
+          : pendingConfirm?.kind === 'reset-data' && pendingConfirm.scope === 'quarantine' ? '清空隔离区记录'
+          : '全部重置'
+        }
+        confirmLabel="确认重置"
+        busy={busy}
+        onCancel={() => setPendingConfirm(null)}
+        onConfirm={() => pendingConfirm && pendingConfirm.kind === 'reset-data' && handleResetData(pendingConfirm.scope)}
+      >
+        {pendingConfirm?.kind === 'reset-data' && pendingConfirm.scope === 'history' && (
+          <p>将删除全部 <strong>{formatCount(totalScans)}</strong> 次扫描历史及其文件分组记录。不影响隔离区数据。</p>
+        )}
+        {pendingConfirm?.kind === 'reset-data' && pendingConfirm.scope === 'quarantine' && (
+          <p>将清空 <strong>{formatCount(quarantine.length)}</strong> 条隔离记录。<strong>磁盘上的隔离文件不会被删除</strong>，但应用将不再显示它们（需手动到隔离区目录处理）。</p>
+        )}
+        {pendingConfirm?.kind === 'reset-data' && pendingConfirm.scope === 'all' && (
+          <p style={{ color: 'var(--danger)' }}>
+            将清空全部扫描历史与隔离区记录，应用回到全新状态。设置不受影响；
+            磁盘上的原始文件和隔离区文件不会被删除。此操作不可撤销。
+          </p>
+        )}
       </ConfirmDialog>
     </div>
   );
