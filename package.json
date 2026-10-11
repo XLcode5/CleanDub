@@ -7,15 +7,12 @@
   "author": "CleanDub",
   "license": "MIT",
   "scripts": {
-    "dev": "concurrently -k \"npm:dev:renderer\" \"npm:dev:electron\"",
+    "dev": "tauri dev",
     "dev:renderer": "vite",
-    "dev:electron": "wait-on tcp:5173 && set NODE_ENV=development&& electron .",
-    "start": "electron .",
-    "test": "node electron/smoke.test.js && node electron/smoke.options.test.js && node electron/smoke.quarantine.test.js",
-    "build": "npm run build:renderer && npm run build:electron",
+    "build": "tauri build",
     "build:renderer": "vite build",
-    "build:electron": "electron-builder --win",
-    "package": "electron-builder --win --dir"
+    "test": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "clippy": "cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",
@@ -32,7 +29,6 @@
     "electron@33.4.11": true
   },
   "dependencies": {
-    "better-sqlite3": "^11.10.0",
     "lucide-react": "^1.54.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
