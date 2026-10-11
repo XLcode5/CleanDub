@@ -45,3 +45,4 @@ dist-renderer/
 # WinForms / .NET 构建产物
 bin/
 obj/
+src-tauri/target/
