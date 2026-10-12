@@ -29,6 +29,7 @@
     "electron@33.4.11": true
   },
   "dependencies": {
+    "@tauri-apps/api": "^2.12.3",
     "lucide-react": "^1.54.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"

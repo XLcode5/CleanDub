@@ -21,8 +21,18 @@ import type {
   ScanStateEvent
 } from './types';
 
+// v1.2.0 静态导入（vite 动态 import 会生成分包 chunk，在 tauri:// 嵌入资产协议下加载失败 → 改静态打进主 bundle）
+// 模块顶层仅注册回调转换器，浏览器演示模式加载无害（调用时才访问 __TAURI_INTERNALS__）
+import { invoke as tauriInvoke } from '@tauri-apps/api/core';
+import { listen as tauriListen } from '@tauri-apps/api/event';
+import { getCurrentWindow as tauriCurrentWindow } from '@tauri-apps/api/window';
+
+// v1.2.0 Tauri 适配：三态 bridge（Tauri > Electron > 浏览器演示）
+const isTauriRuntime: boolean =
+  typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+
 export const isDemoMode: boolean =
-  typeof window === 'undefined' || !window.cleandub;
+  !isTauriRuntime && (typeof window === 'undefined' || !window.cleandub);
 
 type Listeners = { [K in 'scan-progress' | 'scan-state']: Set<(d: never) => void> };
 const listeners: Listeners = {
@@ -198,6 +208,51 @@ async function demoInvoke<K extends BridgeChannel>(
   }
 }
 
+// ---------- Tauri 适配器（v1.2.0）----------
+
+type UnlistenFn = () => void;
+
+function makeTauriBridge(): CleandubBridge {
+  // 静态导入的 Tauri API（见文件顶部 import，已打进主 bundle）
+
+  const pendingUnlistens: Array<Promise<UnlistenFn>> = [];
+  let destroyed = false;
+
+  const bridge: CleandubBridge = {
+    async invoke(channel, payload) {
+      // Tauri 2 command 名 = Rust 函数名原样（snake_case，tauri-macros stringify! 规则）
+      // Electron 遗留通道名是 kebab-case(get-app-settings) → 转 snake_case(get_app_settings)
+      const snake = String(channel).replace(/-/g, '_');
+      return tauriInvoke(snake, (payload ?? {}) as Record<string, unknown>);
+    },
+    on(channel, cb) {
+      const p: Promise<UnlistenFn> = tauriListen(channel, (e: { payload: unknown }) => {
+        (cb as (d: unknown) => void)(e.payload);
+      });
+      pendingUnlistens.push(p);
+      return () => {
+        p.then(fn => fn()).catch(() => undefined);
+      };
+    },
+    window: {
+      minimize() { tauriCurrentWindow().minimize().catch(() => undefined); },
+      toggleMaximize() { tauriCurrentWindow().toggleMaximize().catch(() => undefined); },
+      close() { tauriCurrentWindow().close().catch(() => undefined); },
+      async isMaximized() {
+        try { return await tauriCurrentWindow().isMaximized(); }
+        catch { return false; }
+      }
+    }
+  };
+  // 防止 unmount 后悬挂监听
+  window.addEventListener('beforeunload', () => {
+    if (destroyed) return;
+    destroyed = true;
+    pendingUnlistens.forEach(p => p.then(fn => fn()).catch(() => undefined));
+  });
+  return bridge;
+}
+
 // ---------- 导出统一 bridge ----------
 
 export const bridge: CleandubBridge = isDemoMode
@@ -214,7 +269,9 @@ export const bridge: CleandubBridge = isDemoMode
         async isMaximized() { return false; }
       }
     }
-  : (window.cleandub as CleandubBridge);
+  : isTauriRuntime
+    ? makeTauriBridge()
+    : (window.cleandub as CleandubBridge);
 
 export function invoke<K extends BridgeChannel>(
   channel: K,
