@@ -28,3 +28,5 @@ sha2 = "0.10"        # SHA-256 流式哈希
 thiserror = "2"       # CleanError 错误定义
 rusqlite = { version = "0.32", features = ["bundled"] }  # SQLite（schema 与 v1.0.x 兼容）
 chrono = "0.4"        # 隔离区本地时间戳（isoNow 语义）
+rfd = "0.15"           # 目录选择对话框（对齐 Electron dialog.showOpenDialog）
+ureq = { version = "2", default-features = false, features = ["json", "tls"] }  # 检查更新（GitHub API）
