@@ -71,9 +71,11 @@ dependencies = [
  "log",
  "serde",
  "serde_json",
+ "sha2",
  "tauri",
  "tauri-build",
  "tauri-plugin-log",
+ "thiserror 2.0.21",
 ]
 
 [[package]]

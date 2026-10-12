@@ -1,6 +1,8 @@
 // CleanDub v1.2.0 — Tauri 2 入口（Phase 1: IPC stub 层）
 // 信封格式与 Electron 版完全一致：{ok: true, data: ...}，前端 bridge.ts 拆包逻辑零改动。
 // Phase 2 将用 Rust 引擎逐通道替换 stub（见 docs/tauri-port/dsh-task-spec.md）。
+pub mod strategies_core;
+
 use serde_json::{json, Value};
 
 fn ok(data: Value) -> Value {
