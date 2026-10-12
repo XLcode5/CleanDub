@@ -366,7 +366,7 @@ fn enumerate_dir(dir: &Path, ctx: &mut ScanContext<'_>, depth: u32) -> Result<()
 }
 
 fn maybe_progress_enum(ctx: &ScanContext<'_>) {
-    if ctx.scanned_file_count % ENUMERATE_PROGRESS_INTERVAL == 0 {
+    if ctx.scanned_file_count.is_multiple_of(ENUMERATE_PROGRESS_INTERVAL) {
         ctx.sink.on_progress(
             "enumerate",
             "正在扫描目录结构...".to_string(),
@@ -413,7 +413,7 @@ fn prehash_phase(
 
         // 进度：每 PREHASH_PROGRESS_INTERVAL 个
         let done = (i + 1) as u64;
-        if done % PREHASH_PROGRESS_INTERVAL == 0 || done == total {
+        if done.is_multiple_of(PREHASH_PROGRESS_INTERVAL) || done == total {
             let percent = if total > 0 {
                 (done as f64 * 100.0 / total as f64).min(100.0)
             } else {
@@ -477,7 +477,7 @@ fn fullhash_phase(
 
         // 进度：每 FULLHASH_PROGRESS_INTERVAL 个
         let done = (i + 1) as u64;
-        if done % FULLHASH_PROGRESS_INTERVAL == 0 || done == total {
+        if done.is_multiple_of(FULLHASH_PROGRESS_INTERVAL) || done == total {
             let percent = if total > 0 {
                 (done as f64 * 100.0 / total as f64).min(100.0)
             } else {
@@ -543,10 +543,10 @@ pub fn scan(
         enumerate_dir(Path::new(root), &mut ctx, 0)?;
     }
 
-    // 从 size_groups 中取出 >1 的组，扁平化为候选列表
+    // 从 size_groups 中取出 >1 的组，扁平化为候选列表（drain 避免 ctx 部分移动，后续阶段仍需借用 ctx）
     let candidates: Vec<FileInfo> = ctx
         .size_groups
-        .into_iter()
+        .drain()
         .filter(|(_, v)| v.len() > 1)
         .flat_map(|(_, v)| v)
         .collect();
@@ -565,8 +565,8 @@ pub fn scan(
 
     for (key, files) in &hash_groups {
         if files.len() >= 2 {
-            // key 格式 "size:hash"，取冒号后段
-            let sha256 = key.split(':').nth(1).unwrap_or("").to_string();
+            // key 格式 "size:hash"；Head 模式 "size:HEAD:headHash"，只切第一个冒号
+            let sha256 = key.split_once(':').map(|x| x.1).unwrap_or("").to_string();
             let file_size = files[0].size;
 
             duplicate_file_count += files.len() as u64;
@@ -833,7 +833,7 @@ mod tests {
 
     #[test]
     fn test_verify_mode_head() {
-        // Head 模式下，两个文件头部相同 → 重复组（即使尾部不同）
+        // 小文件（<32KB）：prehash 即全量比较 → 尾部不同必淘汰，0 组（对齐 JS hashFile 语义）
         let dir = std::env::temp_dir().join("scan_core_test_head");
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
@@ -853,9 +853,23 @@ mod tests {
         opts.verify = VerifyMode::Head;
 
         let result = scan(&roots, &opts, &sink, now_ms()).unwrap();
-        // 头部相同 → 视为重复
-        assert_eq!(result.duplicate_group_count, 1);
-        assert_eq!(result.groups[0].sha256.starts_with("HEAD:"), true);
+        // 头部相同但整文件不同（<32KB prehash=全量）→ 不是重复
+        assert_eq!(result.duplicate_group_count, 0, "小文件尾部不同必须淘汰（prehash 全量语义）");
+
+        // 大文件（>32KB）：头部相同尾部不同 → Head 模式视为重复（sha256 带 HEAD: 前缀）
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let big_head = vec![b'B'; 40 * 1024];
+        let mut big1 = big_head.clone();
+        big1.extend_from_slice(b"tail_1_different");
+        let mut big2 = big_head.clone();
+        big2.extend_from_slice(b"tail_2_different");
+        make_file(&dir, "g1.bin", &big1);
+        make_file(&dir, "g2.bin", &big2);
+
+        let result2 = scan(&roots, &opts, &sink, now_ms()).unwrap();
+        assert_eq!(result2.duplicate_group_count, 1, "大于 32KB 头部相同 → Head 模式算重复");
+        assert_eq!(result2.groups[0].sha256.starts_with("HEAD:"), true);
 
         let _ = fs::remove_dir_all(&dir);
     }

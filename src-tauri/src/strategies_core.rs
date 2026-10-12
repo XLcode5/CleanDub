@@ -148,13 +148,13 @@ pub fn pick_keeper(files: &[KeeperCandidate], strategy: RetainStrategy) -> Optio
     match strategy {
         RetainStrategy::Newest => {
             let mut v = enriched;
-            v.sort_by(|a, b| b.mt.cmp(&a.mt));
+            v.sort_by_key(|e| std::cmp::Reverse(e.mt));
             v.into_iter().next().map(|e| e.f)
         }
         RetainStrategy::Original => {
             let plain: Vec<E> = enriched.iter().filter(|e| !e.mi.has_trailing).cloned().collect();
             let mut v = if !plain.is_empty() { plain } else { enriched };
-            v.sort_by(|a, b| b.mt.cmp(&a.mt));
+            v.sort_by_key(|e| std::cmp::Reverse(e.mt));
             v.into_iter().next().map(|e| e.f)
         }
         RetainStrategy::Highest => {

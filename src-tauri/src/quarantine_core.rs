@@ -206,7 +206,7 @@ impl QuarantineCore {
                 .map(|p| p.to_path_buf())
                 .unwrap_or_else(|_| {
                     full.file_name()
-                        .map(|n| PathBuf::from(n))
+                        .map(PathBuf::from)
                         .unwrap_or_else(|| PathBuf::from("unknown"))
                 });
 
@@ -725,8 +725,8 @@ fn resolve_path(path: &Path) -> Result<PathBuf, io::Error> {
 /// 去掉 Windows `\\?\` 前缀使路径与 JS 版 `path.resolve` 一致
 fn strip_verbatim_prefix(path: &Path) -> PathBuf {
     let s = path.to_string_lossy();
-    if s.starts_with("\\\\?\\") {
-        PathBuf::from(&s[4..])
+    if let Some(stripped) = s.strip_prefix("\\\\?\\") {
+        PathBuf::from(stripped)
     } else {
         path.to_path_buf()
     }
@@ -1191,7 +1191,7 @@ mod tests {
         let core = QuarantineCore::new(None);
 
         let (fpath, _) = touch(&root, "will_be_moved.txt");
-        let report = core
+        let _report = core
             .quarantine_files(
                 &root.to_string_lossy().to_string(),
                 &[FileRef { path: fpath.to_string_lossy().to_string() }],
@@ -1339,7 +1339,7 @@ mod tests {
 
         // 先隔离一个文件以创建合法 session
         let (fpath, _) = touch(&root, "del_me.txt");
-        let report = core
+        let _report = core
             .quarantine_files(
                 &root.to_string_lossy().to_string(),
                 &[FileRef { path: fpath.to_string_lossy().to_string() }],
