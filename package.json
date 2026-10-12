@@ -1,6 +1,6 @@
 {
   "name": "cleandub",
-  "version": "1.0.2",
+  "version": "1.2.0",
   "description": "CleanDub - Duplicate file cleaner desktop app (Electron + React + TypeScript)",
   "private": true,
   "main": "electron/main.js",
